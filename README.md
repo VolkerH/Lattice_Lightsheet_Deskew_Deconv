@@ -14,6 +14,14 @@ Currently this is mainly leveraging two libraries:
 * `gputools` by Martin Weigert (https://github.com/maweigert/gputools) for affine transformations
 * `flowdec` by Eric Czech (https://github.com/hammerlab/flowdec) for deconvolution
 
+## Documentation and explanation of the algorithm 
+
+There are two explanatory notebooks that explain the steps:
+
+Deskewing
+https://github.com/VolkerH/Lattice_Lightsheet_Deskew_Deconv/blob/master/Python/00_Lattice_Light_Sheet_Deskew.ipynb
+Deconvolution, both on raw data with skewed PSF (less voxels, much faster) or on deskewed data with PSF
+https://github.com/VolkerH/Lattice_Lightsheet_Deskew_Deconv/blob/master/Python/01_Lattice_Light_Sheet_Deconvolution.ipynb
 
 ### How is this different from LLspy ?
 
@@ -29,3 +37,4 @@ Open-source, GPU accelerated code for deskewing and deconvolving lattice light s
 * add batch scripts
 * add batch sumission for HPC clusters using `dask-jobqueue` https://github.com/dask/dask-jobqueue
 * Flowdec currently requires CUDA for GPU-acceleration. An `opencl`-based deconvolution would open this up to more graphics accelerators.
+* add PSF processing utilities, similar to PSF distiller

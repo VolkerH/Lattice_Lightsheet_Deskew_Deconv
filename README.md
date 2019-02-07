@@ -28,3 +28,4 @@ Open-source, GPU accelerated code for deskewing and deconvolving lattice light s
 * add example datasets
 * add batch scripts
 * add batch sumission for HPC clusters using `dask-jobqueue` https://github.com/dask/dask-jobqueue
+* Flowdec currently requires CUDA for GPU-acceleration. An `opencl`-based deconvolution would open this up to more graphics accelerators.

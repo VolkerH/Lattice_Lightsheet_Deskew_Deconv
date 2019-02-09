@@ -47,5 +47,5 @@ after discussions with @jni and other contributors. I assume it will be the same
 * add more example datasets
 * add batch scripts
 * add batch sumission for HPC clusters using `dask-jobqueue` https://github.com/dask/dask-jobqueue
-* Flowdec currently requires CUDA for GPU-acceleration. An `opencl`-based deconvolution would open this up to more graphics accelerators.
+* Flowdec currently requires CUDA for GPU-acceleration. An `opencl`-based deconvolution would open this up to more graphics accelerators. Alternatively check whether we can get the `ROCm` version of tensorflow running with flowdec to at least support AMD workstation cards https://github.com/ROCmSoftwarePlatform/tensorflow-upstream
 * develop and add PSF processing utilities, similar to PSF distiller

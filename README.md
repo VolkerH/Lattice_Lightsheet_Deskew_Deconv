@@ -24,6 +24,12 @@ https://github.com/VolkerH/Lattice_Lightsheet_Deskew_Deconv/blob/master/Python/0
 * **Deconvolution**, both on raw data with skewed PSF (less voxels, much faster) or on deskewed data with PSF
 https://github.com/VolkerH/Lattice_Lightsheet_Deskew_Deconv/blob/master/Python/01_Lattice_Light_Sheet_Deconvolution.ipynb
 
+## Sample image and PSF file
+
+Sample images are too large for Github:
+* sample image file (courtesy of Felix Kraus / Monash University)  https://www.dropbox.com/s/fbqu59o0jo4ijrd/drp1_dendra2_test_1_CamA_ch0_stack0000_488nm_0000000msec_0018218290msecAbs.tif?dl=0
+* corresponding PSF https://www.dropbox.com/s/4lzkwvj86vndeb8/488_PSF_galvo_CamA_ch0_stack0000_488nm_0000000msec_0016836088msecAbs.tif?dl=0
+
 ### How is this different from LLspy ?
 
 LLSpy (by Talley Lambert https://github.com/tlambert03/LLSpy) is a front-end for batch processing lattice-lightsheet data.
@@ -36,9 +42,9 @@ after discussions with @jni and other contributors. I assume it will be the same
 
 
 
-## Todo (this will be added to the issue tracker) 
+## Todo (these will be added to the issue tracker) 
 
-* add example datasets
+* add more example datasets
 * add batch scripts
 * add batch sumission for HPC clusters using `dask-jobqueue` https://github.com/dask/dask-jobqueue
 * Flowdec currently requires CUDA for GPU-acceleration. An `opencl`-based deconvolution would open this up to more graphics accelerators.

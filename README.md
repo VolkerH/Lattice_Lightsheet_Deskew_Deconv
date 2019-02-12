@@ -27,8 +27,10 @@ https://github.com/VolkerH/Lattice_Lightsheet_Deskew_Deconv/blob/master/Python/0
 ## Sample image and PSF file
 
 Sample images are too large for Github:
-* sample image file (courtesy of Felix Kraus / Monash University)  https://www.dropbox.com/s/fbqu59o0jo4ijrd/drp1_dendra2_test_1_CamA_ch0_stack0000_488nm_0000000msec_0018218290msecAbs.tif?dl=0
-* corresponding PSF https://www.dropbox.com/s/4lzkwvj86vndeb8/488_PSF_galvo_CamA_ch0_stack0000_488nm_0000000msec_0016836088msecAbs.tif?dl=0
+* sample image file (courtesy of Felix Kraus / Monash University)  
+https://www.dropbox.com/s/34ei5jj0qgylf8q/drp1_dendra2_test_1_CamA_ch0_stack0000_488nm_0000000msec_0018218290msecAbs.tif?dl=0
+* corresponding PSF
+https://www.dropbox.com/s/39ljascy4vkp0tk/488_PSF_galvo_CamA_ch0_stack0000_488nm_0000000msec_0016836088msecAbs.tif?dl=0
 
 ### How is this different from LLspy ?
 

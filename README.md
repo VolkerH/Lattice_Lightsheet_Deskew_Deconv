@@ -26,7 +26,7 @@ https://github.com/VolkerH/Lattice_Lightsheet_Deskew_Deconv/blob/master/Python/0
 
 ## Sample image and PSF file
 
-** DROPBOX links fixed here, but not yet fixed in notebooks (the dropbox links in the previous version did not work)
+**DROPBOX links fixed here, but not yet fixed in notebooks (the dropbox links in the previous version did not work)**
 
 Sample images are too large for Github:
 * sample image file (courtesy of Felix Kraus / Monash University)  

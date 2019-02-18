@@ -146,9 +146,3 @@ def get_rotate_function(input_shape, dz_stage=0.299401, xypixelsize=0.1040, angl
     rotate_func = partial(affine_transform, matrix=inv(all_in_one), output_shape=output_shape, order=interp_order)
     return rotate_func
 
-# TODO move get_deconv into a separate file with deconvolution stuff
-def get_deconv_function(input_shape, psf, n_inter):
-    def deconv_func(input):
-        print("dummy stub for deconv")
-        return(input)
-    return deconv_func

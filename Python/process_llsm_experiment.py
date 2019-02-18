@@ -6,7 +6,7 @@ import numpy as np
 from settings import read_fixed_settings
 from transform_helpers import *
 from utils import *
-
+from deconvolution import init_rl_deconvolver, get_deconv_function
 
 import logging
 logging.getLogger("tifffile").setLevel(logging.ERROR)
@@ -20,9 +20,6 @@ class ExperimentProcessor(object):
         """
         Input:
         ef: Experimentfolder class
-        fixed_settings: fixed settings that are not read from the 
-                        per-experiment settings file. 
-                        (TODO maybe put them in a json file)
         skip_existing: if True, skip processing if the output file already exists
         skip_files_regex: list of regular expressions that are applied
                         to the input files. Any matching file will
@@ -31,13 +28,15 @@ class ExperimentProcessor(object):
                        provide a pathlib.Path object for the desired output folder here
         dask_settings: dictionary of settings if dask is to be used to distribute jobs.
         TODO:
+
         Where to set the process options ?
-        
+        Settingsfile
         
         Comment: 
         By moving a lot of the parameters into the instance variables we don't need to
         pass them aorund. 
         However, when batch processing there is a risk that someone may change the parameters
+
         """
         self.ef = ef
        
@@ -63,11 +62,14 @@ class ExperimentProcessor(object):
         self.do_deconv_deskew = False # if you want the deconv deskewed 
         self.do_deconv_rotate = False # if you want the deconv rotated
         self.do_deconv = self.do_deconv or self.do_deconv_deskew or self.do_deconv_rotate
+        self.deconv_n_iter = 10
 
         self._montage_gap = 10 # gap between projections in orthogonal view montage
         self.output_imaris = False # Todo, implement imaris output
 
         self.verbose = True # if True, prints diagnostic output
+
+
 
     def generate_outputnames(self, infile):
         """ 
@@ -127,7 +129,7 @@ class ExperimentProcessor(object):
         except:
             warnings.warn(f"Error creating MIP {str(outfile)} ... skipping")
             
-    def process_file(self, infile, deskew_func=None, rotate_func=None, deconv_func=None, bg_subtract=0): #n_iter=10, psf=None):
+    def process_file(self, infile, deskew_func=None, rotate_func=None, deconv_func=None, bg_subtract=0):
         """ process an individual file 
         file: input file (pathlib object)
 
@@ -192,7 +194,7 @@ class ExperimentProcessor(object):
         # get subset of files and settings specific to this stack 
         subset_files = self.ef.stackfiles[self.ef.stackfiles.stack_name == stack_name]
         subset_files = subset_files.reset_index()
-        stack_settings =  self.ef.settings[self.ef.settings.stack_name == stack_name]
+        stack_settings = self.ef.settings[self.ef.settings.stack_name == stack_name]
         stack_settings = stack_settings.reset_index()
 
         # Take dz_stage setting from first row 
@@ -224,6 +226,8 @@ class ExperimentProcessor(object):
             # process PSFs
             wavelengths = subset_files.wavelength.unique() #find which wavelengths are present in files
             processed_psfs = {}
+            deconv_functions = {}
+            deconvolver = init_rl_deconvolver()
             for wavelength in wavelengths:
                 #find all PSF files matching this wavelength where scan=='Galvo'
                 psf_candidates = self.ef.PSFs[(self.ef.PSFs.scantype == 'Galvo') & (self.ef.PSFs.wavelength==wavelength)]
@@ -238,28 +242,33 @@ class ExperimentProcessor(object):
                 
                 psffile = psf_candidates.file[0]
                 # find galvo z-step setting
-
                 tmp = self.ef.psf_settings[(self.ef.psf_settings.scantype == "Galvo") & (self.ef.psf_settings["lambda"]==int(wavelength))]
                 tmp.reset_index()
                 dz_galvo = tmp.galvoscan_interval[0]
-                print("dz galvo", dz_galvo)
-                processed_psfs[wavelength] = generate_psf(psffile, tmp_vol.shape, dz_stage, dz_galvo, xypixelsize, angle)
+                print("dz galvo interval", dz_galvo)
                 print(f"processing PSF file {psffile} for wavelength {wavelength}")
-
-                # TODO save PSF to disk
+                processed_psfs[wavelength] = generate_psf(psffile, tmp_vol.shape, dz_stage, dz_galvo, xypixelsize, angle)
+                deconv_functions[wavelength] = get_deconv_function(processed_psfs[wavelength], deconvolver, self.deconv_n_iter)
+                # TODO save PSF to disk for later reference what was used 
+                # TODO generate PSF output filename and/or 
                 
-                # TODO this is debugging code, remove
+                # TODO debugging code, remove when no longer needed:
                 print("processed_psf.keys()", processed_psfs.keys())
        
         ### Start batch processing 
         for index, row in subset_files.iterrows():
-            
             if self.verbose:
                 print(f"Processing {index}: {row.file}")
             # TODO implement regex check for files to skip
 
             # TODO pass in psf for channel
-            self.process_file(pathlib.Path(row.file), deskew_func, rotate_func)
+            if self.do_deconv:
+                warnings.warn("Unfinished WORK TODO")
+                # determine wavelength for file and pick corresponding PSF
+                print("wavelength", row.wavelength)
+                self.process_file(pathlib.Path(row.file), deskew_func, rotate_func, deconv_functions[wavelength])
+            else:
+                self.process_file(pathlib.Path(row.file), deskew_func, rotate_func)
 
     def process_all(self):
         """
@@ -267,10 +276,6 @@ class ExperimentProcessor(object):
         """
         for stack in self.ef.stacks:
             self.process_stack_subfolder(stack)
-
-        
-
-
 
     """
     Original "Pseudo-code" below ...

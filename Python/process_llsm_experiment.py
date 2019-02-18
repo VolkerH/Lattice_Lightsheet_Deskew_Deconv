@@ -66,7 +66,7 @@ class ExperimentProcessor(object):
 
         self._montage_gap = 10 # gap between projections in orthogonal view montage
         self.output_imaris = False # Todo, implement imaris output
-
+        self.output_dtype = np.uint16 # set the output dtype
         self.verbose = True # if True, prints diagnostic output
 
 
@@ -98,8 +98,8 @@ class ExperimentProcessor(object):
         # (TODO: improve later, too much boiler plate code for my taste)
         outfiles["deskew/MIP"] = out_base / "py_deskew" / "MIP" / f"{stem}_deskew_MIP{suffix}" 
         outfiles["rotate/MIP"] = out_base / "py_rotate" / "MIP" / f"{stem}_rotate_MIP{suffix}"  
-        outfiles["deconv/deskew/MIP"] = out_base / "py_deconv" / "deskew" / f"{stem}_deconv_deskew_MIP{suffix}"
-        outfiles["deconv/rotate/MIP"] = out_base / "py_deconv" / "rotate" / f"{stem}_deconv_rotate_MIP{suffix}"
+        outfiles["deconv/deskew/MIP"] = out_base / "py_deconv" / "deskew" / "MIP" / f"{stem}_deconv_deskew_MIP{suffix}"
+        outfiles["deconv/rotate/MIP"] = out_base / "py_deconv" / "rotate" / "MIP" / f"{stem}_deconv_rotate_MIP{suffix}"
         
         return(outfiles)
 
@@ -164,29 +164,29 @@ class ExperimentProcessor(object):
 
         if self.do_deskew and not checks[0]:
             deskewed = deskew_func(vol_raw)
-            write_tiff_createfolder(outfiles["deskew"], deskewed) 
+            write_tiff_createfolder(outfiles["deskew"], deskewed.astype(self.output_dtype)) 
             if self.do_MIP:
-                 self.create_MIP(deskewed, outfiles["deskew/MIP"])
+                 self.create_MIP(deskewed.astype(self.output_dtype), outfiles["deskew/MIP"])
             # write settings/metadata file to subfolder
         if self.do_rotate and not checks[1]:
             rotated = rotate_func(vol_raw)
-            write_tiff_createfolder(outfiles["rotate"], rotated)
+            write_tiff_createfolder(outfiles["rotate"], rotated.astype(self.output_dtype))
             if self.do_MIP:
-                 self.create_MIP(rotated, outfiles["rotate/MIP"])
+                 self.create_MIP(rotated.astype(self.output_dtype), outfiles["rotate/MIP"])
             # write settings/metadata file to subfolder
         if self.do_deconv:
             deconv_raw = deconv_func(vol_raw)
             # TODO: write deconv settings
             if self.do_deconv_deskew:
                 deconv_deskewed = deskew_func(deconv_raw)
-                write_tiff_createfolder(outfiles["deconv/deskew"], deconv_deskewed)
+                write_tiff_createfolder(outfiles["deconv/deskew"], deconv_deskewed.astype(self.output_dtype))
                 if self.do_MIP:
-                    self.create_MIP(deconv_deskewed, outfiles["deconv/deskew/MIP"])               
+                    self.create_MIP(deconv_deskewed.astype(self.output_dtype), outfiles["deconv/deskew/MIP"])               
             if self.do_deconv_rotate:
                 deconv_rotated = rotate_func(deconv_raw)
-                write_tiff_createfolder(outfiles["deconv/rotate"], deconv_rotated)
+                write_tiff_createfolder(outfiles["deconv/rotate"], deconv_rotated.astype(self.output_dtype))
                 if self.do_MIP:
-                    self.create_MIP(deconv_rotated, outfiles["deconv/rotate/MIP"]) 
+                    self.create_MIP(deconv_rotated.astype(self.output_dtype), outfiles["deconv/rotate/MIP"]) 
                 
     def process_stack_subfolder(self, stack_name):
         """ process a timeseries """
@@ -227,6 +227,11 @@ class ExperimentProcessor(object):
             wavelengths = subset_files.wavelength.unique() #find which wavelengths are present in files
             processed_psfs = {}
             deconv_functions = {}
+            ## Here we initialize a single deconvolver that gets used
+            ## for all deconvolutions. 
+            ## I have doubts whether this will work if several threads run in parallel,
+            ## I assume a deconvolver will have to be initialized for each worker
+            ## Therefore this may have to be moved into `get_deconv_func` (TODO)
             deconvolver = init_rl_deconvolver()
             for wavelength in wavelengths:
                 #find all PSF files matching this wavelength where scan=='Galvo'

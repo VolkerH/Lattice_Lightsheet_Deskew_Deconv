@@ -2,9 +2,10 @@ from experiment_folder import Experimentfolder
 from psf_tools import generate_psf
 import pathlib
 import tifffile
+import tqdm
 import numpy as np
 from settings import read_fixed_settings
-from transform_helpers import *
+from transform_helpers import get_rotate_function, get_deskew_function, get_projections, get_projection_montage
 from utils import *
 from deconvolution import init_rl_deconvolver, get_deconv_function
 
@@ -59,7 +60,7 @@ class ExperimentProcessor(object):
         self.output_imaris = False # TODO: implement imaris output using Talley's imarispy
         self.output_bdv = False # TODO: 
         self.output_dtype = np.uint16 # set the output dtype
-        self.verbose = True # if True, prints diagnostic output
+        self.verbose = False # if True, prints diagnostic output
 
     def generate_outputnames(self, infile):
         """ 
@@ -247,7 +248,7 @@ class ExperimentProcessor(object):
                 # TODO  generate PSF output filename and save PSF to disk for later reference what was used               
        
         ### Start batch processing 
-        for index, row in subset_files.iterrows():
+        for index, row in tqdm.tqdm(subset_files.iterrows(), total=subset_files.shape[0]):
             if self.verbose:
                 print(f"Processing {index}: {row.file}")
             # TODO implement regex check for files to skip

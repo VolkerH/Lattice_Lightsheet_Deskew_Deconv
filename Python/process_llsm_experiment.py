@@ -24,19 +24,10 @@ class ExperimentProcessor(object):
         skip_files_regex: list of regular expressions that are applied
                         to the input files. Any matching file will
                         be disregarded. (useful to not process unwanted wavelengths)
-        exp_outfolder: (optional) if the outpust subfolders are not to be created in the input experiment folder,
-                       provide a pathlib.Path object for the desired output folder here
-        dask_settings: dictionary of settings if dask is to be used to distribute jobs.
-        TODO:
-
-        Where to set the process options ?
-        Settingsfile
-        
-        Comment: 
-        By moving a lot of the parameters into the instance variables we don't need to
-        pass them aorund. 
-        However, when batch processing there is a risk that someone may change the parameters
-
+        exp_outfolder: (optional) if the output subfolders are not to be created in the input experiment folder,
+                       provide the desired output folder here. Can be string or Pathlib.Path object.
+        dask_settings: (not yet implemented)
+                      dictionary of settings if dask is to be used to distribute jobs.
         """
         self.ef = ef
        
@@ -65,11 +56,10 @@ class ExperimentProcessor(object):
         self.deconv_n_iter = 10
 
         self._montage_gap = 10 # gap between projections in orthogonal view montage
-        self.output_imaris = False # Todo, implement imaris output
+        self.output_imaris = False # TODO: implement imaris output using Talley's imarispy
+        self.output_bdv = False # TODO: 
         self.output_dtype = np.uint16 # set the output dtype
         self.verbose = True # if True, prints diagnostic output
-
-
 
     def generate_outputnames(self, infile):
         """ 
@@ -206,8 +196,6 @@ class ExperimentProcessor(object):
 
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
-            print("subset_files", subset_files)
-            print("trying to read file", subset_files.file[0])
             tmp_vol = tifffile.imread(subset_files.file[0])
         dz_stage = stack_settings.dz_stage[0]
         xypixelsize=stack_settings.xypixelsize[0]
@@ -221,44 +209,42 @@ class ExperimentProcessor(object):
         rotate_func = get_rotate_function(tmp_vol.shape, dz_stage, xypixelsize, angle)
         
         if self.do_deconv:
-            # TODO: deal with this later
-            # prepare deconv
-            # process PSFs
-            wavelengths = subset_files.wavelength.unique() #find which wavelengths are present in files
-            processed_psfs = {}
-            deconv_functions = {}
+            # Prepare deconvolution:
+            
             ## Here we initialize a single deconvolver that gets used
             ## for all deconvolutions. 
             ## I have doubts whether this will work if several threads run in parallel,
             ## I assume a deconvolver will have to be initialized for each worker
             ## Therefore this may have to be moved into `get_deconv_func` (TODO)
             deconvolver = init_rl_deconvolver()
+            
+            # Preprocess PSFs and create deconvolution functions
+            wavelengths = subset_files.wavelength.unique() #find which wavelengths are present in files
+            processed_psfs = {}
+            deconv_functions = {}
             for wavelength in wavelengths:
                 #find all PSF files matching this wavelength where scan=='Galvo'
                 psf_candidates = self.ef.PSFs[(self.ef.PSFs.scantype == 'Galvo') & (self.ef.PSFs.wavelength==wavelength)]
                 psf_candidates = psf_candidates.reset_index()
                 if len(psf_candidates) == 0:
                     warnings.warn(f"no suitable PSF found for {wavelength}")
-                    # TODO: revert to a default
+                    # TODO: fall back to a default PSF for this case (synthetic? or measurment library? Discuss with David)
                     raise ValueError("No  suitable PSF")
                 elif len(psf_candidates) > 1:
                     warnings.warn(f"more than one PSF found. Taking first one")
                     # TODO define rules which PSF to choose (first , last, largest filesize?)
-                
+                    # TODO check for unfinished tiff files
                 psffile = psf_candidates.file[0]
                 # find galvo z-step setting
                 tmp = self.ef.psf_settings[(self.ef.psf_settings.scantype == "Galvo") & (self.ef.psf_settings["lambda"]==int(wavelength))]
                 tmp.reset_index()
                 dz_galvo = tmp.galvoscan_interval[0]
-                print("dz galvo interval", dz_galvo)
-                print(f"processing PSF file {psffile} for wavelength {wavelength}")
+                if self.verbose:
+                    print("dz galvo interval", dz_galvo)
+                    print(f"processing PSF file {psffile} for wavelength {wavelength}")
                 processed_psfs[wavelength] = generate_psf(psffile, tmp_vol.shape, dz_stage, dz_galvo, xypixelsize, angle)
                 deconv_functions[wavelength] = get_deconv_function(processed_psfs[wavelength], deconvolver, self.deconv_n_iter)
-                # TODO save PSF to disk for later reference what was used 
-                # TODO generate PSF output filename and/or 
-                
-                # TODO debugging code, remove when no longer needed:
-                print("processed_psf.keys()", processed_psfs.keys())
+                # TODO  generate PSF output filename and save PSF to disk for later reference what was used               
        
         ### Start batch processing 
         for index, row in subset_files.iterrows():
@@ -266,11 +252,8 @@ class ExperimentProcessor(object):
                 print(f"Processing {index}: {row.file}")
             # TODO implement regex check for files to skip
 
-            # TODO pass in psf for channel
             if self.do_deconv:
-                warnings.warn("Unfinished WORK TODO")
                 # determine wavelength for file and pick corresponding PSF
-                print("wavelength", row.wavelength)
                 self.process_file(pathlib.Path(row.file), deskew_func, rotate_func, deconv_functions[wavelength])
             else:
                 self.process_file(pathlib.Path(row.file), deskew_func, rotate_func)
@@ -281,62 +264,3 @@ class ExperimentProcessor(object):
         """
         for stack in self.ef.stacks:
             self.process_stack_subfolder(stack)
-
-    """
-    Original "Pseudo-code" below ...
-    remove when done
-
-
-    given Experimentfolder
-    find all stacks in Experimentfolder
-    read fixed settings
-    for each stack:
-        ################################
-        # general preparations for stack
-        ################################
-        read settings for stack
-        calculate deskew factor
-        calculate deskew transform
-        calculate deskew/rotate transform
-        ################################
-        # deconvolution preparations for stack
-        ################################
-        if deconvolution_wanted:
-            find which wavelengths are present in files
-            for each wavelength present:
-                find all PSF files matching this wavelength where scan=='galvo'
-                select a single PSF file based on ?? (newest file, largest file)
-                if no PSF file found:
-                    print warning and revert to a default PSF matching the same settings (beam pattern)
-                    (TODO create defaults)
-                calculate dz ratio
-                process PSF for use with deconv and add to dictionary indexed by wavelength
-     #######################
-     # Batch processing
-     #######################
-     for each file in stack (sorted by timepoint, wavelength):
-         submit job:
-             assemble output filenames
-             if all output files already exist and skip_existing
-                 return
-             read file
-             if deskew:
-                 if deskew does not already exist:
-                     deskew file and write to subfolder "deskewed" (create folder if not present)
-                     write settings/metadata file to subfolder
-             if rotate:
-                  if rotate output does not already exist:
-                     deskew/rotate file and write to subfolder "rotated"
-                     write settings/metadata file to subfolder
-             if deconvolution_wanted:
-                  deconvolve raw/skewed
-                  if deskew:
-                      deskew deconvolved
-                      write to subfolder "deconv_deskew"
-                      write settings/metadata file to subfolder
-                  if rotate:
-                      deskew/rotate deconvolved
-                      write to subfolder "deconv rotate"
-                      write settings/metadata file to subfolder
-    """
-    

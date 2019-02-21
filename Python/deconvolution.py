@@ -2,7 +2,6 @@ from flowdec import restoration as tfd_restoration
 from flowdec import data as fd_data
 from functools import partial
 
-
 def init_rl_deconvolver():
     """ initializes the tensorflow-based Richardson Lucy Deconvolver """
     return tfd_restoration.RichardsonLucyDeconvolver(n_dims=3, start_mode="input").initialize()

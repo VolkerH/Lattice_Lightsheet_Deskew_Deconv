@@ -149,11 +149,9 @@ class ExperimentProcessor(object):
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
             vol_raw = tifffile.imread(str(infile))
-        vol_raw = vol_raw.astype(np.int)
-        vol_raw -= (
-            self.bg_subtract_value
-        )  # TODO see issue https://github.com/VolkerH/Lattice_Lightsheet_Deskew_Deconv/issues/13
-        np.clip(vol_raw, a_min=0, a_max=None, out=vol_raw)  # in-place clipping of negative values
+        vol_raw = vol_raw.astype(np.int)-self.bg_subtract_value # TODO see issue https://github.com/VolkerH/Lattice_Lightsheet_Deskew_Deconv/issues/13
+        vol_raw = np.clip(vol_raw, a_min=0, a_max=None).astype(np.uint16)  # in-place clipping of negative values
+        
         if self.do_deskew and not checks[0]:
             deskewed = deskew_func(vol_raw)
             write_tiff_createfolder(outfiles["deskew"], deskewed.astype(self.output_dtype))

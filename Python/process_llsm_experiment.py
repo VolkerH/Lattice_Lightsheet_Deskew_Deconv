@@ -98,7 +98,7 @@ class ExperimentProcessor(object):
         """ 
         generates the output path (including subfolders) for the PSF file
         """
-        return self.ef.exp_outfolder / "PSF_Processed" / f"{wavelength}"/ f"PSF_{wavelength}.tif"
+        return self.exp_outfolder / "PSF_Processed" / f"{wavelength}"/ f"PSF_{wavelength}.tif"
 
     def create_MIP(self, vol, outfile, method="montage"):
         """

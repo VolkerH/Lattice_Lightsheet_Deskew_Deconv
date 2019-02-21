@@ -149,7 +149,7 @@ class ExperimentProcessor(object):
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
             vol_raw = tifffile.imread(str(infile))
-        vol_raw = vol_raw.astpye(np.int)
+        vol_raw = vol_raw.astype(np.int)
         vol_raw -= (
             self.bg_subtract_value
         )  # TODO see issue https://github.com/VolkerH/Lattice_Lightsheet_Deskew_Deconv/issues/13

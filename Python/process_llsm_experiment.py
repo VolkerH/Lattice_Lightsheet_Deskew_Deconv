@@ -42,26 +42,26 @@ class ExperimentProcessor(object):
             self.exp_outfolder = ef.path
         else:
             self.exp_outfolder = pathlib.Path(exp_outfolder)
-        # Which processing steps should be performed ?
-        # TODO: add functions to set these
 
-        # if do_MIP is set, it will be applied to any of the other processing steps
+        # Set default processing options
+
         # as it is such a cheap operation to perform
-        self.do_MIP = True
-
+        self.do_MIP = True  # if set, MIPs will be generated for all of the operations
         self.do_deskew = True
         self.do_rotate = True
-
         self.do_deconv = False  # set to True if performing deconvolution on skewed raw volume
         self.do_deconv_deskew = False  # if you want the deconv deskewed
         self.do_deconv_rotate = False  # if you want the deconv rotated
         self.do_deconv = self.do_deconv or self.do_deconv_deskew or self.do_deconv_rotate
+
+        self.bg_subtract_value = 100  # Value to be subtracted from each input file ~200 for Orca
         self.deconv_n_iter = 10
 
+        self.MIP_method = "montage"  # one of ["montage", "multi"]
         self._montage_gap = 10  # gap between projections in orthogonal view montage
         self.output_imaris = False  # TODO: implement imaris output using Talley's imarispy
         self.output_bdv = False  # TODO:
-        self.output_dtype = np.uint16  # set the output dtype
+        self.output_dtype = np.uint16  # set the output dtype (no check for overflow)
         self.verbose = False  # if True, prints diagnostic output
 
     def generate_outputnames(self, infile):
@@ -86,8 +86,6 @@ class ExperimentProcessor(object):
         outfiles["deconv/deskew"] = out_base / "py_deconv" / "deskew" / f"{stem}_deconv_deskew{suffix}"
         outfiles["deconv/rotate"] = out_base / "py_deconv" / "rotate" / f"{stem}_deconv_rotate{suffix}"
         # Maximum intensity projections ...
-        #
-        # (TODO: improve later, too much boiler plate code for my taste)
         outfiles["deskew/MIP"] = out_base / "py_deskew" / "MIP" / f"{stem}_deskew_MIP{suffix}"
         outfiles["rotate/MIP"] = out_base / "py_rotate" / "MIP" / f"{stem}_rotate_MIP{suffix}"
         outfiles["deconv/deskew/MIP"] = out_base / "py_deconv" / "deskew" / "MIP" / f"{stem}_deconv_deskew_MIP{suffix}"
@@ -101,25 +99,20 @@ class ExperimentProcessor(object):
         """
         return self.exp_outfolder / "PSF_Processed" / f"{wavelength}" / f"PSF_{wavelength}.tif"
 
-    def create_MIP(self, vol, outfile, method="montage"):
+    def create_MIP(self, vol, outfile):
         """
         Creates a MIP from a volume and saves it to outfile
 
-        input: vol
-        outfile: output file path
-        method: one of ["montage", "multi", "individual"]
-        "montage" montages all three MIPs into a single 2D image
-        "individual" saves the projections as individual files. The output file name
-            is modified by replacing the suffix (e.g. ".tif") with f"_{a}"+suffix where
-            a is the axis number (0,1,2)
+        vol: input volume (ndarray)
+        outfile: output file path (suffix will be modified for "multi" method)
         """
-        assert method in ["montage", "individual"]
+        assert self.MIP_method in ["montage", "multi"]
 
         try:
-            if method == "montage":
+            if self.MIP_method == "montage":  # montages all three MIPs into a single 2D image
                 montage = get_projection_montage(vol, gap=self._montage_gap)
                 write_tiff_createfolder(str(outfile), montage)
-            if method == "multi":
+            if self.MIP_method == "multi":  # saves the projections as individual files
                 projections = get_projections(vol)
                 for i, proj in enumerate(projections):
                     axisfile = outfile.parent / f"{outfile.stem}_{i}{outfile.suffix}"
@@ -127,18 +120,13 @@ class ExperimentProcessor(object):
         except:
             warnings.warn(f"Error creating MIP {str(outfile)} ... skipping")
 
-    def process_file(self, infile, deskew_func=None, rotate_func=None, deconv_func=None, bg_subtract=0):
+    def process_file(self, infile, deskew_func=None, rotate_func=None, deconv_func=None):
         """ process an individual file 
         file: input file (pathlib object)
 
         deskew_func: the deskew function
         rotate_func: the rotate function 
         deconv_func: the deconv function
-
-        bg_subtract: constant value to subtract from the background
-
-        n_iter = (optional) number of iterations for Richardson-Lucy. Defaults to 10.
-        psf: (optional) psf for this file, only required if deconvolving
         """
 
         outfiles = self.generate_outputnames(infile)
@@ -161,8 +149,11 @@ class ExperimentProcessor(object):
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
             vol_raw = tifffile.imread(str(infile))
-        vol_raw -= bg_subtract  # TODO implement proper bg subtraction
-
+        vol_raw = vol_raw.astpye(np.int)
+        vol_raw -= (
+            self.bg_subtract_value
+        )  # TODO see issue https://github.com/VolkerH/Lattice_Lightsheet_Deskew_Deconv/issues/13
+        np.clip(vol_raw, a_min=0, a_max=None, out=vol_raw)  # in-place clipping of negative values
         if self.do_deskew and not checks[0]:
             deskewed = deskew_func(vol_raw)
             write_tiff_createfolder(outfiles["deskew"], deskewed.astype(self.output_dtype))

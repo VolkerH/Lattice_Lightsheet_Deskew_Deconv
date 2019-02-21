@@ -3,7 +3,6 @@
 ## CAVEAT: 
 
 work in progress ! 
-Will start adding code from a private repo in the coming weeks and add documentation and sample datasets.
 
 ## About - Lattice Lightsheet Deskew/Deconv in Python
 
@@ -15,18 +14,18 @@ Currently this is mainly leveraging two libraries:
 * `gputools` by Martin Weigert (https://github.com/maweigert/gputools) for affine transformations. Note that you may need to install the develop branch of `gputools` as the code in this repo relies on this fixes https://github.com/maweigert/gputools/issues/12 that may not have made it into the main branch (at the time of this writing) and the conda channels.
 * `flowdec` by Eric Czech (https://github.com/hammerlab/flowdec) for deconvolution.
 
+
 ## Documentation and explanation of the algorithm 
 
-There are two explanatory notebooks that detail the steps:
+The following notebooks illustrate the basic algorithms used and provide examples for batch processing.
 
-* **Deskewing**
-https://github.com/VolkerH/Lattice_Lightsheet_Deskew_Deconv/blob/master/Python/00_Lattice_Light_Sheet_Deskew.ipynb
-* **Deconvolution**, both on raw data with skewed PSF (less voxels, much faster) or on deskewed data with PSF
-https://github.com/VolkerH/Lattice_Lightsheet_Deskew_Deconv/blob/master/Python/01_Lattice_Light_Sheet_Deconvolution.ipynb
+* **Deskewing** [Jupyter notebook that illustrates how to deskew and rotate with affine transforms](./Python/00_Lattice_Light_Sheet_Deskew.ipynb)
+* **Deconvolution** [Demonstrates deskewing both on raw data with skewed PSF (less voxels, therefore faster) and on deskewed data with unskewed PSF](./Python/01_Lattice_Light_Sheet_Deconvolution.ipynb)
+* **Batch Processing** [Batch process experiment folders](./Python/03_Batch_Process.ipynb) 
 
 ## Sample image and PSF file
 
-**DROPBOX links fixed here, but not yet fixed in notebooks (the dropbox links in the previous version did not work)**
+**DROPBOX links fixed. (The dropbox links in a previous version were no longer valid)**
 
 Sample images are too large for Github:
 * sample image file (courtesy of Felix Kraus / Monash University)  
@@ -44,12 +43,9 @@ The code in this repository is intended to develop into an open-source, GPU acce
 for deskewing and deconvolving lattice light sheet data. The open source license still needs to be determined 
 after discussions with @jni and other contributors. I assume it will be the same license that scikit-image uses.
 
-
-
 ## Todo (these will be added to the issue tracker) 
 
 * add more example datasets
-* add batch scripts
 * add batch sumission for HPC clusters using `dask-jobqueue` https://github.com/dask/dask-jobqueue
 * Flowdec currently requires CUDA for GPU-acceleration. An `opencl`-based deconvolution would open this up to more graphics accelerators. Alternatively check whether we can get the `ROCm` version of tensorflow running with flowdec to at least support AMD workstation cards https://github.com/ROCmSoftwarePlatform/tensorflow-upstream
 * develop and add PSF processing utilities, similar to PSF distiller

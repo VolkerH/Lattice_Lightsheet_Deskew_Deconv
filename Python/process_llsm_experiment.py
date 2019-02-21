@@ -93,6 +93,12 @@ class ExperimentProcessor(object):
         outfiles["deconv/rotate/MIP"] = out_base / "py_deconv" / "rotate" / "MIP" / f"{stem}_deconv_rotate_MIP{suffix}"
         
         return(outfiles)
+    
+    def generate_PSF_name(self, wavelength):
+        """ 
+        generates the output path (including subfolders) for the PSF file
+        """
+        return self.ef.exp_outfolder / "PSF_Processed" / f"{wavelength}"/ f"PSF_{wavelength}.tif"
 
     def create_MIP(self, vol, outfile, method="montage"):
         """
@@ -144,8 +150,9 @@ class ExperimentProcessor(object):
             checks.append(self.do_deconv_deskew and outfiles["deconv/deskew"].exists())
             checks.append(self.do_deconv_rotate and outfiles["deconv/rotate"].exists())
         if all(checks):
-            warnings.warn(f"nothing to do for {infile}. All outputs already exist. '\
-                             Disable skip-existing to overwrite")
+            if self.verbose:
+                warnings.warn(f"nothing to do for {infile}. All outputs already exist. '\
+                                 Disable skip-existing to overwrite")
             return
 
         with warnings.catch_warnings():
@@ -244,9 +251,9 @@ class ExperimentProcessor(object):
                     print("dz galvo interval", dz_galvo)
                     print(f"processing PSF file {psffile} for wavelength {wavelength}")
                 processed_psfs[wavelength] = generate_psf(psffile, tmp_vol.shape, dz_stage, dz_galvo, xypixelsize, angle)
+                write_tiff_createfolder(self.generate_PSF_name(wavelength), processed_psfs[wavelength])
                 deconv_functions[wavelength] = get_deconv_function(processed_psfs[wavelength], deconvolver, self.deconv_n_iter)
-                # TODO  generate PSF output filename and save PSF to disk for later reference what was used               
-       
+                
         ### Start batch processing 
         for index, row in tqdm.tqdm(subset_files.iterrows(), total=subset_files.shape[0]):
             if self.verbose:
@@ -263,5 +270,5 @@ class ExperimentProcessor(object):
         """
         Process all timeseries (stacks) in experiment folder
         """
-        for stack in self.ef.stacks:
+        for stack in tqdm.tqdm(self.ef.stacks):
             self.process_stack_subfolder(stack)

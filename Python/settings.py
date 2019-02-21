@@ -1,5 +1,6 @@
 import json
 
+
 def create_fixed_settings(file):
     fs = {}
     fs["xypixelsize"] = 0.1040
@@ -9,10 +10,11 @@ def create_fixed_settings(file):
     with open(file, "w") as f:
         json.dump(fs, f)
 
+
 def read_fixed_settings(file):
     with open(file, "r") as fp:
         return json.load(fp)
 
 
-#create_fixed_settings("fixed_settings.json")
-#read_fixed_settings("fixed_settings.json")
+# create_fixed_settings("fixed_settings.json")
+# read_fixed_settings("fixed_settings.json")

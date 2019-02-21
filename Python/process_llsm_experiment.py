@@ -10,14 +10,16 @@ from utils import *
 from deconvolution import init_rl_deconvolver, get_deconv_function
 
 import logging
+
 logging.getLogger("tifffile").setLevel(logging.ERROR)
 
 # TODO: change terminology: stacks -> timeseries ?
 #     :                     single timepoint -> stack
 # TODO: discuss with David
 
+
 class ExperimentProcessor(object):
-    def __init__(self, ef, skip_files_regex=[], skip_existing=True, exp_outfolder = None , dask_settings={}):
+    def __init__(self, ef, skip_files_regex=[], skip_existing=True, exp_outfolder=None, dask_settings={}):
         """
         Input:
         ef: Experimentfolder class
@@ -31,7 +33,7 @@ class ExperimentProcessor(object):
                       dictionary of settings if dask is to be used to distribute jobs.
         """
         self.ef = ef
-       
+
         self.skip_files_regex = skip_files_regex
         self.processedPSFCache = None
         self.skip_existing = skip_existing
@@ -44,23 +46,23 @@ class ExperimentProcessor(object):
         # TODO: add functions to set these
 
         # if do_MIP is set, it will be applied to any of the other processing steps
-        # as it is such a cheap operation to perform 
+        # as it is such a cheap operation to perform
         self.do_MIP = True
 
         self.do_deskew = True
         self.do_rotate = True
 
-        self.do_deconv = False # set to True if performing deconvolution on skewed raw volume
-        self.do_deconv_deskew = False # if you want the deconv deskewed 
-        self.do_deconv_rotate = False # if you want the deconv rotated
+        self.do_deconv = False  # set to True if performing deconvolution on skewed raw volume
+        self.do_deconv_deskew = False  # if you want the deconv deskewed
+        self.do_deconv_rotate = False  # if you want the deconv rotated
         self.do_deconv = self.do_deconv or self.do_deconv_deskew or self.do_deconv_rotate
         self.deconv_n_iter = 10
 
-        self._montage_gap = 10 # gap between projections in orthogonal view montage
-        self.output_imaris = False # TODO: implement imaris output using Talley's imarispy
-        self.output_bdv = False # TODO: 
-        self.output_dtype = np.uint16 # set the output dtype
-        self.verbose = False # if True, prints diagnostic output
+        self._montage_gap = 10  # gap between projections in orthogonal view montage
+        self.output_imaris = False  # TODO: implement imaris output using Talley's imarispy
+        self.output_bdv = False  # TODO:
+        self.output_dtype = np.uint16  # set the output dtype
+        self.verbose = False  # if True, prints diagnostic output
 
     def generate_outputnames(self, infile):
         """ 
@@ -72,33 +74,32 @@ class ExperimentProcessor(object):
         """
         outfiles = {}
         parents = infile.parents
-        name = infile.name
         suffix = infile.suffix
         stem = infile.stem
         if self.verbose:
             print(f"Experiment outputfolder {self.exp_outfolder}")
-        out_base  = self.exp_outfolder / parents[1].name / parents[0].name
- 
+        out_base = self.exp_outfolder / parents[1].name / parents[0].name
+
         outfiles["deskew"] = out_base / "py_deskew" / f"{stem}_deskew{suffix}"
         outfiles["rotate"] = out_base / "py_rotate" / f"{stem}_rotate{suffix}"
-        outfiles["deconv"] = out_base / "py_deconv" / f"{stem}_deconv_raw{suffix}" # TODO: implement or remove
+        outfiles["deconv"] = out_base / "py_deconv" / f"{stem}_deconv_raw{suffix}"  # TODO: implement or remove
         outfiles["deconv/deskew"] = out_base / "py_deconv" / "deskew" / f"{stem}_deconv_deskew{suffix}"
         outfiles["deconv/rotate"] = out_base / "py_deconv" / "rotate" / f"{stem}_deconv_rotate{suffix}"
-        # Maximum intensity projections ... 
-        # 
+        # Maximum intensity projections ...
+        #
         # (TODO: improve later, too much boiler plate code for my taste)
-        outfiles["deskew/MIP"] = out_base / "py_deskew" / "MIP" / f"{stem}_deskew_MIP{suffix}" 
-        outfiles["rotate/MIP"] = out_base / "py_rotate" / "MIP" / f"{stem}_rotate_MIP{suffix}"  
+        outfiles["deskew/MIP"] = out_base / "py_deskew" / "MIP" / f"{stem}_deskew_MIP{suffix}"
+        outfiles["rotate/MIP"] = out_base / "py_rotate" / "MIP" / f"{stem}_rotate_MIP{suffix}"
         outfiles["deconv/deskew/MIP"] = out_base / "py_deconv" / "deskew" / "MIP" / f"{stem}_deconv_deskew_MIP{suffix}"
         outfiles["deconv/rotate/MIP"] = out_base / "py_deconv" / "rotate" / "MIP" / f"{stem}_deconv_rotate_MIP{suffix}"
-        
-        return(outfiles)
-    
+
+        return outfiles
+
     def generate_PSF_name(self, wavelength):
         """ 
         generates the output path (including subfolders) for the PSF file
         """
-        return self.exp_outfolder / "PSF_Processed" / f"{wavelength}"/ f"PSF_{wavelength}.tif"
+        return self.exp_outfolder / "PSF_Processed" / f"{wavelength}" / f"PSF_{wavelength}.tif"
 
     def create_MIP(self, vol, outfile, method="montage"):
         """
@@ -112,8 +113,8 @@ class ExperimentProcessor(object):
             is modified by replacing the suffix (e.g. ".tif") with f"_{a}"+suffix where
             a is the axis number (0,1,2)
         """
-        assert(method in ["montage", "individual"])
-    
+        assert method in ["montage", "individual"]
+
         try:
             if method == "montage":
                 montage = get_projection_montage(vol, gap=self._montage_gap)
@@ -125,7 +126,7 @@ class ExperimentProcessor(object):
                     write_tiff_createfolder(str(axisfile), proj)
         except:
             warnings.warn(f"Error creating MIP {str(outfile)} ... skipping")
-            
+
     def process_file(self, infile, deskew_func=None, rotate_func=None, deconv_func=None, bg_subtract=0):
         """ process an individual file 
         file: input file (pathlib object)
@@ -151,26 +152,28 @@ class ExperimentProcessor(object):
             checks.append(self.do_deconv_rotate and outfiles["deconv/rotate"].exists())
         if all(checks):
             if self.verbose:
-                warnings.warn(f"nothing to do for {infile}. All outputs already exist. '\
-                                 Disable skip-existing to overwrite")
+                warnings.warn(
+                    f"nothing to do for {infile}. All outputs already exist. '\
+                                 Disable skip-existing to overwrite"
+                )
             return
 
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
             vol_raw = tifffile.imread(str(infile))
-        vol_raw -= bg_subtract # TODO implement proper bg subtraction
+        vol_raw -= bg_subtract  # TODO implement proper bg subtraction
 
         if self.do_deskew and not checks[0]:
             deskewed = deskew_func(vol_raw)
-            write_tiff_createfolder(outfiles["deskew"], deskewed.astype(self.output_dtype)) 
+            write_tiff_createfolder(outfiles["deskew"], deskewed.astype(self.output_dtype))
             if self.do_MIP:
-                 self.create_MIP(deskewed.astype(self.output_dtype), outfiles["deskew/MIP"])
+                self.create_MIP(deskewed.astype(self.output_dtype), outfiles["deskew/MIP"])
             # write settings/metadata file to subfolder
         if self.do_rotate and not checks[1]:
             rotated = rotate_func(vol_raw)
             write_tiff_createfolder(outfiles["rotate"], rotated.astype(self.output_dtype))
             if self.do_MIP:
-                 self.create_MIP(rotated.astype(self.output_dtype), outfiles["rotate/MIP"])
+                self.create_MIP(rotated.astype(self.output_dtype), outfiles["rotate/MIP"])
             # write settings/metadata file to subfolder
         if self.do_deconv:
             deconv_raw = deconv_func(vol_raw)
@@ -179,25 +182,25 @@ class ExperimentProcessor(object):
                 deconv_deskewed = deskew_func(deconv_raw)
                 write_tiff_createfolder(outfiles["deconv/deskew"], deconv_deskewed.astype(self.output_dtype))
                 if self.do_MIP:
-                    self.create_MIP(deconv_deskewed.astype(self.output_dtype), outfiles["deconv/deskew/MIP"])               
+                    self.create_MIP(deconv_deskewed.astype(self.output_dtype), outfiles["deconv/deskew/MIP"])
             if self.do_deconv_rotate:
                 deconv_rotated = rotate_func(deconv_raw)
                 write_tiff_createfolder(outfiles["deconv/rotate"], deconv_rotated.astype(self.output_dtype))
                 if self.do_MIP:
-                    self.create_MIP(deconv_rotated.astype(self.output_dtype), outfiles["deconv/rotate/MIP"]) 
-                
+                    self.create_MIP(deconv_rotated.astype(self.output_dtype), outfiles["deconv/rotate/MIP"])
+
     def process_stack_subfolder(self, stack_name):
         """ process a timeseries """
-        
-        # get subset of files and settings specific to this stack 
+
+        # get subset of files and settings specific to this stack
         subset_files = self.ef.stackfiles[self.ef.stackfiles.stack_name == stack_name]
         subset_files = subset_files.reset_index()
         stack_settings = self.ef.settings[self.ef.settings.stack_name == stack_name]
         stack_settings = stack_settings.reset_index()
 
-        # Take dz_stage setting from first row 
+        # Take dz_stage setting from first row
         # based on assumption that all channels have same dz_stage
-        
+
         # calculate deskew factor and create volume deskew and deskew/rotate partial functions
         # we need the input file shape, ... this is not in the metadata, so we read the first volume
         # in the timeseries and get the shape from there
@@ -206,7 +209,7 @@ class ExperimentProcessor(object):
             warnings.simplefilter("ignore")
             tmp_vol = tifffile.imread(subset_files.file[0])
         dz_stage = stack_settings.dz_stage[0]
-        xypixelsize=stack_settings.xypixelsize[0]
+        xypixelsize = stack_settings.xypixelsize[0]
         angle = stack_settings.angle_fixed[0]
         if self.verbose:
             print("Generating deskew function")
@@ -215,24 +218,26 @@ class ExperimentProcessor(object):
         if self.verbose:
             print("Generating rotate function")
         rotate_func = get_rotate_function(tmp_vol.shape, dz_stage, xypixelsize, angle)
-        
+
         if self.do_deconv:
             # Prepare deconvolution:
-            
+
             ## Here we initialize a single deconvolver that gets used
-            ## for all deconvolutions. 
+            ## for all deconvolutions.
             ## I have doubts whether this will work if several threads run in parallel,
             ## I assume a deconvolver will have to be initialized for each worker
             ## Therefore this may have to be moved into `get_deconv_func` (TODO)
             deconvolver = init_rl_deconvolver()
-            
+
             # Preprocess PSFs and create deconvolution functions
-            wavelengths = subset_files.wavelength.unique() #find which wavelengths are present in files
+            wavelengths = subset_files.wavelength.unique()  # find which wavelengths are present in files
             processed_psfs = {}
             deconv_functions = {}
             for wavelength in wavelengths:
-                #find all PSF files matching this wavelength where scan=='Galvo'
-                psf_candidates = self.ef.PSFs[(self.ef.PSFs.scantype == 'Galvo') & (self.ef.PSFs.wavelength==wavelength)]
+                # find all PSF files matching this wavelength where scan=='Galvo'
+                psf_candidates = self.ef.PSFs[
+                    (self.ef.PSFs.scantype == "Galvo") & (self.ef.PSFs.wavelength == wavelength)
+                ]
                 psf_candidates = psf_candidates.reset_index()
                 if len(psf_candidates) == 0:
                     warnings.warn(f"no suitable PSF found for {wavelength}")
@@ -244,17 +249,23 @@ class ExperimentProcessor(object):
                     # TODO check for unfinished tiff files
                 psffile = psf_candidates.file[0]
                 # find galvo z-step setting
-                tmp = self.ef.psf_settings[(self.ef.psf_settings.scantype == "Galvo") & (self.ef.psf_settings["lambda"]==int(wavelength))]
+                tmp = self.ef.psf_settings[
+                    (self.ef.psf_settings.scantype == "Galvo") & (self.ef.psf_settings["lambda"] == int(wavelength))
+                ]
                 tmp.reset_index()
                 dz_galvo = tmp.galvoscan_interval[0]
                 if self.verbose:
                     print("dz galvo interval", dz_galvo)
                     print(f"processing PSF file {psffile} for wavelength {wavelength}")
-                processed_psfs[wavelength] = generate_psf(psffile, tmp_vol.shape, dz_stage, dz_galvo, xypixelsize, angle)
+                processed_psfs[wavelength] = generate_psf(
+                    psffile, tmp_vol.shape, dz_stage, dz_galvo, xypixelsize, angle
+                )
                 write_tiff_createfolder(self.generate_PSF_name(wavelength), processed_psfs[wavelength])
-                deconv_functions[wavelength] = get_deconv_function(processed_psfs[wavelength], deconvolver, self.deconv_n_iter)
-                
-        ### Start batch processing 
+                deconv_functions[wavelength] = get_deconv_function(
+                    processed_psfs[wavelength], deconvolver, self.deconv_n_iter
+                )
+
+        ### Start batch processing
         for index, row in tqdm.tqdm(subset_files.iterrows(), total=subset_files.shape[0]):
             if self.verbose:
                 print(f"Processing {index}: {row.file}")

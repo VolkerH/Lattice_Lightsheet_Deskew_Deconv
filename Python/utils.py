@@ -3,7 +3,9 @@ import tifffile
 import warnings
 
 import logging
+
 logging.getLogger("tifffile").setLevel(logging.ERROR)
+
 
 def write_tiff_createfolder(path, nparray):
     """ 
@@ -17,7 +19,7 @@ def write_tiff_createfolder(path, nparray):
     if not isinstance(path, pathlib.Path):
         path = pathlib.Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
-    #print(f"writing {str(path)}")
+    # print(f"writing {str(path)}")
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
         tifffile.imsave(str(path), nparray)

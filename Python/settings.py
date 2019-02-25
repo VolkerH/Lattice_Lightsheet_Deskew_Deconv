@@ -11,7 +11,7 @@ def create_fixed_settings(file: str):
         json.dump(fs, f)
 
 
-def read_fixed_settings(file: str) -> Dict[Any]:
+def read_fixed_settings(file: str) -> Dict[str, Any]:
     with open(file, "r") as fp:
         return json.load(fp)
 

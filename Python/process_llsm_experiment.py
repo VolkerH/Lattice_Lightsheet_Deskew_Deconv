@@ -9,7 +9,7 @@ import numpy as np
 from transform_helpers import get_rotate_function, get_deskew_function, get_projections, get_projection_montage
 from utils import write_tiff_createfolder
 from deconvolution import init_rl_deconvolver, get_deconv_function
-from typing import Iterable, Callable, Optional, Union, Any, Dict
+from typing import Iterable, Callable, Optional, Union, Any, Dict, DefaultDict
 import logging
 
 logging.getLogger("tifffile").setLevel(logging.ERROR)
@@ -47,7 +47,7 @@ class ExperimentProcessor(object):
         self.skip_existing = skip_existing
 
         if exp_outfolder is None:
-            self.exp_outfolder = ef.path
+            self.exp_outfolder = ef.folder
         else:
             self.exp_outfolder = pathlib.Path(exp_outfolder)
 
@@ -227,7 +227,7 @@ class ExperimentProcessor(object):
         rotate_func = get_rotate_function(tmp_vol.shape, dz_stage, xypixelsize, angle)
 
         processed_psfs = {}
-        deconv_functions = defaultdict(lambda: None)
+        deconv_functions: DefaultDict[str, Union[None, Callable]] = defaultdict(lambda: None)
         if self.do_deconv:
             # Prepare deconvolution:
 

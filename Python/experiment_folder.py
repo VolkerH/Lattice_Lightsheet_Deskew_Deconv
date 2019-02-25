@@ -3,7 +3,7 @@ import re
 import pandas as pd
 from extract_metadata import extract_lls_metadata
 from settings import read_fixed_settings
-from typing import Union
+from typing import Union, List, Any
 
 
 class Experimentfolder(object):
@@ -20,19 +20,16 @@ class Experimentfolder(object):
         if not isinstance(f, pathlib.Path):
             # try to convert into pathlib Path if something else has been passed in
             f = pathlib.Path(f)
-        self.folder = f
+        self.folder: pathlib.Path = f
         assert f.exists()
-        # Check whether we have
-        # PSF
-        # Stacks
-        self.path = f
-        self.stacks = None
+
+        self.stacks: Union[List[str], None] = None
         # all image files in the stack
-        self.stackfiles = None
-        self.PSFs = None
-        self.settings = None
-        self.psf_settings = None
-        self.fixed_settings_file = fixed_settings_file
+        self.stackfiles: Union[pd.DataFrame, None] = None
+        self.PSFs: Union[pd.DataFrame, None] = None
+        self.settings: Union[pd.DataFrame, None] = None
+        self.psf_settings: Union[pd.DataFrame, None] = None
+        self.fixed_settings_file: str = fixed_settings_file
         self.defaultPSFs = None  # TODO
 
         self.scan_folder()
@@ -52,23 +49,24 @@ class Experimentfolder(object):
     def scan_folder(self):
         self.stackfiles = self.find_stacks()
         self.stacks = list(pd.unique(self.stackfiles.stack_name))
-        self.PSFs = self.find_PSFs()
+        self.PSFs = self.find_PSFs
         self.settings = self.find_settings()
         self.psf_settings = self.find_PSF_settings()
         self._apply_fixed_settings()
 
     def find_PSFs(self) -> pd.DataFrame:
-        """ finds and parses filenames of PSF
+        """ finds and parses file names of PSF
         """
+
         files = (self.folder / "PSF").rglob("*.tif")
-        files = map(str, files)
+        files = map(str, files)  # type: ignore
 
         # This complicated list comprehension
-        # extracts some fields fro the Path using
+        # extracts some fields from the Path using
         # a regular expression
 
         # TODO: what happens if an unexpected tiff file is present?
-        matchdict = [{**self.regex_PSF.match(f).groupdict(), **{"file": f}} for f in files]
+        matchdict = [{**self.regex_PSF.match(f).groupdict(), **{"file": f}} for f in files]  # type: ignore
         df = pd.DataFrame(matchdict)
         return df
 
@@ -86,19 +84,19 @@ class Experimentfolder(object):
         allfiles = (self.folder / "Stacks").glob("*")
         stackfolders = list(filter(lambda x: x.is_dir(), allfiles))
         # stacknames = list(map(lambda f: str(f.name), stackfolders))
-        matched_stacks = []
+        matched_stacks: List[Any] = []
         for sf in stackfolders:
             stackname = sf.name
             stackfiles = list(sf.glob("*.tif"))
-            stackfiles = map(str, stackfiles)
+            stackfiles = map(str, stackfiles)  # type: ignore
             matched_stacks += [
-                {**self.regex_Stackfiles.match(f).groupdict(), **{"file": f, "stack_name": stackname}}
+                {**self.regex_Stackfiles.match(f).groupdict(), **{"file": f, "stack_name": stackname}}  # type: ignore
                 for f in stackfiles
             ]
         return pd.DataFrame(matched_stacks)
 
     def find_settings(self) -> pd.DataFrame:
-        """ reads and parses the settings files for all the stacks in order to extract 
+        """ reads and parses the settings files for all the stacks in order to extract
         data such as dz step """
         sfiles = list((self.folder / "Stacks").rglob("*Settings.txt"))
 

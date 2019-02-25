@@ -3,7 +3,7 @@ from builtins import tuple
 import gputools
 import numpy as np
 import warnings
-from typing import Iterable, Optional, Any, Union
+from typing import Iterable, Optional, Any, Union, Sequence
 
 def affine_transform_gputools(
         input_data: np.ndarray,
@@ -75,7 +75,7 @@ def affine_transform_gputools(
         warnings.simplefilter("ignore")
         result = gputools.affine(data=input_data, mat=matrix, mode=mode, interpolation=interpolation)
 
-    if needs_crop:
+    if needs_crop and output_shape is not None:
         i, j, k = output_shape
         result = result[0:i, 0:j, 0:k]
 

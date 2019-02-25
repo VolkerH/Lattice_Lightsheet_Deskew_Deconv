@@ -49,7 +49,7 @@ class Experimentfolder(object):
     def scan_folder(self):
         self.stackfiles = self.find_stacks()
         self.stacks = list(pd.unique(self.stackfiles.stack_name))
-        self.PSFs = self.find_PSFs
+        self.PSFs = self.find_PSFs()
         self.settings = self.find_settings()
         self.psf_settings = self.find_PSF_settings()
         self._apply_fixed_settings()

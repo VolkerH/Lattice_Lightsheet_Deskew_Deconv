@@ -1,10 +1,20 @@
+from builtins import tuple
+
 import gputools
 import numpy as np
 import warnings
-
+from typing import Iterable, Optional, Any, Union
 
 def affine_transform_gputools(
-    input, matrix, offset=0.0, output_shape=None, output=None, order=1, mode="constant", cval=0.0, prefilter=None
+        input_data: np.ndarray,
+        matrix: np.ndarray,
+        offset: Union[float, Iterable[float]] = 0.0,
+        output_shape: Optional[Iterable[int]] = None,
+        output: Optional[np.ndarray] = None,
+        order: int = 1,
+        mode: str = "constant",
+        cval: float = 0.0,
+        prefilter: Optional[Any] = None
 ):
     """ affine_transform_gputools
     Wraps affine transform from GPUtools such that
@@ -35,29 +45,35 @@ def affine_transform_gputools(
     elif order == 1:
         interpolation = "linear"
     else:
+        interpolation = "linear"
         warnings.warn("interpolation order >1 not supported, defaulting to linear.")
+
+    if output is not None:
+        # TODO : can we support in-place?
+        warnings.warn("inplace operation not yet implemented in gputools wrapper")
 
     # pad input array for output shape
     # see np.pad if you wonder about the strange padding
     needs_crop = False
     if output_shape is not None:
-        padding = np.array(output_shape) - np.array(input.shape)
+        assert isinstance(input_data.shape, tuple)
+        padding = np.array(output_shape) - np.array(input_data.shape)
         if np.any(padding < 0):
             needs_crop = True
         padding = [(0, max(i, 0)) for i in padding]
         # TODO check whether np.pad supports the same modes as gputools.affine
         if mode == "constant":
-            input = np.pad(input, padding, mode=mode, constant_values=cval)
+            input_data = np.pad(input_data, padding, mode=mode, constant_values=cval)
         else:
-            input = np.pad(input, padding, mode=mode)
+            input_data = np.pad(input_data, padding, mode=mode)
 
-    if not mode in ("edge", "constant", "wrap"):
+    if mode not in ("edge", "constant", "wrap"):
         warnings.warn("Mode " + mode + " not supported by gputools.constant. Falling back to constant")
         mode = "constant"
 
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
-        result = gputools.affine(data=input, mat=matrix, mode=mode, interpolation=interpolation)
+        result = gputools.affine(data=input_data, mat=matrix, mode=mode, interpolation=interpolation)
 
     if needs_crop:
         i, j, k = output_shape

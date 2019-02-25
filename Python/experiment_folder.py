@@ -3,6 +3,7 @@ import re
 import pandas as pd
 from extract_metadata import extract_lls_metadata
 from settings import read_fixed_settings
+from typing import Union
 
 
 class Experimentfolder(object):
@@ -15,7 +16,7 @@ class Experimentfolder(object):
         r".*[/\\](?P<prefix>.+)_ch(?P<channel>\d+)_[^\d]*(?P<zslice>\d+)_(?P<wavelength>\d+)nm_(?P<reltime_ms>\d+)msec_(?P<abstime_ms>\d+)msec*"
     )
 
-    def __init__(self, f, fixed_settings_file="fixed_settings.json"):
+    def __init__(self, f: Union[str, pathlib.Path], fixed_settings_file: str = "fixed_settings.json"):
         if not isinstance(f, pathlib.Path):
             # try to convert into pathlib Path if something else has been passed in
             f = pathlib.Path(f)
@@ -56,7 +57,7 @@ class Experimentfolder(object):
         self.psf_settings = self.find_PSF_settings()
         self._apply_fixed_settings()
 
-    def find_PSFs(self):
+    def find_PSFs(self) -> pd.DataFrame:
         """ finds and parses filenames of PSF
         """
         files = (self.folder / "PSF").rglob("*.tif")
@@ -75,7 +76,7 @@ class Experimentfolder(object):
         """ checks whether OTFs exist and finds and parses filenames of OTFs"""
         pass
 
-    def find_stacks(self):
+    def find_stacks(self) -> pd.DataFrame:
         """ finds all the stacks in stacks and creates a data table with metadata
         """
         # Glob folders below stack first, want to avoid
@@ -96,7 +97,7 @@ class Experimentfolder(object):
             ]
         return pd.DataFrame(matched_stacks)
 
-    def find_settings(self):
+    def find_settings(self) -> pd.DataFrame:
         """ reads and parses the settings files for all the stacks in order to extract 
         data such as dz step """
         sfiles = list((self.folder / "Stacks").rglob("*Settings.txt"))
@@ -111,7 +112,7 @@ class Experimentfolder(object):
         settings = pd.concat(map(process_settings, sfiles))
         return settings
 
-    def find_PSF_settings(self):
+    def find_PSF_settings(self) -> pd.DataFrame:
         """
         Similar to find_settings but for the PSFs rather than the stacks
         currently as stub TODO

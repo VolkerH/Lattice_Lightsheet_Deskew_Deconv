@@ -12,7 +12,7 @@ import re
 import pandas as pd
 
 
-def extract_lls_metadata(settingsfilepath, verbose=False):
+def extract_lls_metadata(settingsfilepath: str, verbose: bool = False) -> pd.DataFrame:
     """ Extract LLS Metadata from settingsfile
     Given a settingsfilepath open the file and extract 
     the metadata we need for deskew, deconvolve

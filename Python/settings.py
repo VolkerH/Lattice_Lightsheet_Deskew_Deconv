@@ -1,7 +1,7 @@
 import json
+from typing import Dict, Any
 
-
-def create_fixed_settings(file):
+def create_fixed_settings(file: str):
     fs = {}
     fs["xypixelsize"] = 0.1040
     fs["angle_fixed"] = 31.8
@@ -11,10 +11,9 @@ def create_fixed_settings(file):
         json.dump(fs, f)
 
 
-def read_fixed_settings(file):
+def read_fixed_settings(file: str) -> Dict[Any]:
     with open(file, "r") as fp:
         return json.load(fp)
-
 
 # create_fixed_settings("fixed_settings.json")
 # read_fixed_settings("fixed_settings.json")

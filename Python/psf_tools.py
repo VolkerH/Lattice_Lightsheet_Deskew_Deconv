@@ -10,9 +10,10 @@ import warnings
 import pathlib
 import tifffile
 import numpy as np
+from typing import Tuple, Union, Optional, Iterable
 
 
-def psf_find_maximum(psf, maxiter=20, gauss_sigma=1.5):
+def psf_find_maximum(psf: np.ndarray, maxiter: int = 20, gauss_sigma: float = 1.5):
     """
     Tries to find a single maxium in the numpy volume psf.
     Uses peak_local_max to find the maximum. Iteratively
@@ -33,7 +34,7 @@ def psf_find_maximum(psf, maxiter=20, gauss_sigma=1.5):
     return centre[0]
 
 
-def psf_background_subtraction(psf):
+def psf_background_subtraction(psf: np.ndarray) -> Tuple[np.ndarray, float]:
     """ 
     Estimates ans substracts the background fluorescence intensity.
     assumes that first and last slice of the stack contain mostly background
@@ -43,10 +44,15 @@ def psf_background_subtraction(psf):
 
     bgval = np.median(psf[(0, -1), :, :])
     psf_bgcorr = np.clip(psf - bgval, 0, np.max(psf))
-    return (psf_bgcorr, bgval)
+    return psf_bgcorr, float(bgval)
 
 
-def psf_rescale_centre_skew_pad(psf, dz_ratio_galvo_stage, centre, output_shape, deskewfactor=None, inerpolation=1):
+def psf_rescale_centre_skew_pad(psf: np.ndarray,
+                                dz_ratio_galvo_stage: float,
+                                centre: Iterable[float],
+                                output_shape: Iterable[int],
+                                deskewfactor: Optional[float] = None,
+                                interpolation: int = 1) -> Tuple[np.ndarray, np.ndarray]:
     """
     Given a 
     * psf: volume (numpy array)
@@ -66,11 +72,11 @@ def psf_rescale_centre_skew_pad(psf, dz_ratio_galvo_stage, centre, output_shape,
     else:
         skew = np.eye(4)  # no skew, identity
     combined_transform = unshift @ skew @ scale_psf @ shift
-    processed_psf = affine_transform(psf, inv(combined_transform), output_shape=output_shape)
-    return (processed_psf, combined_transform)
+    processed_psf = affine_transform(psf, inv(combined_transform), output_shape = output_shape, order=interpolation)
+    return processed_psf, combined_transform
 
 
-def psf_normalize_intensity(psf):
+def psf_normalize_intensity(psf: np.ndarray) -> np.ndarray:
     """
     Given 
     * psf: a numpy array
@@ -90,9 +96,14 @@ def psf_normalize_intensity(psf):
         return psf
 
 
-def generate_psf(
-    psffile, output_shape, dz_stage, dz_galvo, xypixelsize, angle, subtract_bg=True, normalize_intensity=True
-):
+def generate_psf(psffile: Union[pathlib.Path, str],
+                 output_shape: Iterable[int],
+                 dz_stage: float,
+                 dz_galvo: float,
+                 xypixelsize: float,
+                 angle: float,
+                 subtract_bg: bool = True,
+                 normalize_intensity: bool = True) -> np.ndarray:
     """
     Generate a PSF for use with flowdec or Deconvolutionlab2.
     Finds maximum of bead, centres it in the volume.
@@ -128,7 +139,7 @@ def generate_psf(
     deskewfactor = calc_deskew_factor(dz_stage, xypixelsize, angle)
 
     psf, transform = psf_rescale_centre_skew_pad(
-        psf_orig, dz_ratio_galvo_stage, bead_centre, output_shape, deskewfactor, inerpolation=1
+        psf_orig, dz_ratio_galvo_stage, bead_centre, output_shape, deskewfactor, interpolation=1
     )
     if subtract_bg:
         psf, bgval = psf_background_subtraction(psf)

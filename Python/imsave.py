@@ -2,7 +2,7 @@ import tifffile
 import warnings
 import numpy as np
 
-# The code in this file is copied from Talley Lambert's LLSpy project
+# The code in this file is derived from code in Talley Lambert's LLSpy project
 # https://github.com/tlambert03/LLSpy/blob/develop/llspy/util.py
 # 
 # The license associated with LLSpy is reproduced below
@@ -42,7 +42,7 @@ COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER I
 AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH
 THE SOFTWARE OR THE USE OR OTHER DEALINGS WITH THE SOFTWARE.
 """
-def reorderstack(arr, inorder='zyx', outorder='tzcyx'):
+def reorderstack(arr: np.ndarray, inorder: str = 'zyx', outorder: str = 'tzcyx'):
     """rearrange order of array, used when resaving a file."""
     inorder = inorder.lower()
     assert arr.ndim == len(inorder), 'The array dimensions must match the inorder dimensions'
@@ -55,7 +55,7 @@ def reorderstack(arr, inorder='zyx', outorder='tzcyx'):
     return arr
 
 
-def imsave(arr, outpath, dx=1, dz=1, dt=1, unit='micron'):
+def imsave(arr: np.ndarray, outpath: str, dx=1, dz=1, dt=1, unit: str = 'micron'):
     """sample wrapper for tifffile.imsave imagej=True."""
     # array must be in TZCYX order
     md = {
@@ -66,10 +66,9 @@ def imsave(arr, outpath, dx=1, dz=1, dt=1, unit='micron'):
         'mode': 'composite',
         'loop': 'true',
     }
-    bigT = True if arr.nbytes > 3758096384 else False  # > 3.5GB make a bigTiff
+    big_t = True if arr.nbytes > 3758096384 else False  # > 3.5GB make a bigTiff
     if arr.ndim == 3:
         arr = reorderstack(arr)  # assume that 3 dimension array is ZYX
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
-        tifffile.imsave(outpath, arr, bigtiff=bigT, imagej=True,
-resolution=(1 / dx, 1 / dx), metadata=md)
+        tifffile.imsave(outpath, arr, bigtiff=big_t, imagej=True, resolution=(1 / dx, 1 / dx), metadata=md)

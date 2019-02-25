@@ -1,13 +1,14 @@
 import pathlib
 import tifffile
 import warnings
-
 import logging
+import numpy as np
+from typing import Union
 
 logging.getLogger("tifffile").setLevel(logging.ERROR)
 
 
-def write_tiff_createfolder(path, nparray):
+def write_tiff_createfolder(path: Union[str, pathlib.Path], nparray: np.ndarray):
     """ 
     given a
     path: to a tiff file of type pathlib.Path (or str), and

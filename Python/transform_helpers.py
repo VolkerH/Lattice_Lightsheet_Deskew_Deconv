@@ -4,16 +4,17 @@ from gputools_wrapper import affine_transform_gputools as affine_transform
 from numpy.linalg import inv
 from functools import partial
 from transforms import rot_around_y, deskew_mat, shift_centre, unshift_centre, scale_pixel_z
+from typing import Union, Iterable, Callable
+import warnings
 
-
-def ceil_to_mulitple(x, base=4):
+def ceil_to_mulitple(x, base: int = 4):
     """ rounds up to the nearest multiple of base
     input can be a numpy array or any scalar
     """
     return (np.int(base) * np.ceil(np.array(x).astype(np.float) / base)).astype(np.int)
 
 
-def get_transformed_corners(aff, vol_or_shape, zeroindex=True):
+def get_transformed_corners(aff: np.ndarray, vol_or_shape: Union[np.ndarray, Iterable[float]], zeroindex: bool = True):
     """ Input
     aff: an affine transformation matrix 
     vol_or_shape: a numpy volume or shape of a volume. 
@@ -27,7 +28,8 @@ def get_transformed_corners(aff, vol_or_shape, zeroindex=True):
         d0, d1, d2 = vol_or_shape.shape
     elif np.array(vol_or_shape).ndim == 1:
         d0, d1, d2 = vol_or_shape
-
+    else:
+        raise ValueError
     # By default we calculate where the corner points in
     # zero-indexed (numpy) arrays will be transformed to.
     # set zeroindex to False if you want to perform the calculation
@@ -54,12 +56,11 @@ def get_transformed_corners(aff, vol_or_shape, zeroindex=True):
     return corner_array
 
 
-def get_output_dimensions(aff, vol_or_shape, roundto=1):
+def get_output_dimensions(aff: np.ndarray, vol_or_shape: Union[np.ndarray, Iterable[float]]):
     """ given an 4x4 affine transformation matrix aff and 
     a 3d input volume (numpy array) or volumen shape (iterable with 3 elements)
     this function returns the output dimensions required for the array after the
     transform. Rounds up to create an integer result.
-    Rounds the output shape up (ceil) to a multiple of roundto
     """
     corners = get_transformed_corners(aff, vol_or_shape, zeroindex=True)
     # +1 to avoid fencepost error
@@ -68,15 +69,15 @@ def get_output_dimensions(aff, vol_or_shape, roundto=1):
     return dims[:3].astype(np.int)
 
 
-def get_projections(in_array, fun=np.max):
+def get_projections(in_array: np.ndarray, fun: Callable = np.max) -> Iterable[np.ndarray]:
     """ given an array, projects along each axis using the function fun (defaults to np.max).
     Returns a mapping (iterator) of projections """
     projections = map(lambda ax: fun(in_array, axis=ax), range(in_array.ndim))
     return projections
 
 
-def plot_all(imlist, backend="matplotlib"):
-    """ given a list of 2d numpy arrays (images),
+def plot_all(imlist: Iterable[np.ndarray], backend: str = "matplotlib"):
+    """ given an iterable of 2d numpy arrays (images),
         plots all of them in order.
         Will add different backends (Bokeh) later """
     if backend == "matplotlib":
@@ -84,20 +85,20 @@ def plot_all(imlist, backend="matplotlib"):
             plt.imshow(im)
             plt.show()
     else:
-        print("backend not yet implemented")
+        warnings.warn(f"backend {backend} not yet implemented")
 
 
 def imprint_coordinate_system(volume, origin=(0, 0, 0), l=100, w=5, vals=(6000, 10000, 14000)):
     """ imprints coordinate system axes in a volume at origin
-    axes imprints have length l and widht w and intensity values in val.
-    This can be quite helpful for debugging affine transforms to see what's happening."""
+    axes imprints have length l and width w and intensity values in val.
+    This can be quite helpful for debugging affine transforms to see how the coordinate axes are mapped."""
     o = origin
     volume[o[0] : o[0] + l, o[1] : o[1] + w, o[2] : o[2] + w] = vals[0]
     volume[o[0] : o[0] + w, o[1] : o[1] + l, o[2] : o[2] + w] = vals[1]
     volume[o[0] : o[0] + w, o[1] : o[1] + w, o[2] : o[2] + l] = vals[2]
 
 
-def get_projection_montage(vol, gap=10, proj_function=np.max):
+def get_projection_montage(vol: np.ndarray, gap: int = 10, proj_function: Callable = np.max) -> np.ndarray:
     """ 
     given a spim volume vol, creates a montage with all three projections
     (orthogonal views)
@@ -112,11 +113,15 @@ def get_projection_montage(vol, gap=10, proj_function=np.max):
     return m
 
 
-def calc_deskew_factor(dz_stage, xypixelsize, angle):
+def calc_deskew_factor(dz_stage: float, xypixelsize: float, angle: float) -> float:
     return np.cos(angle * np.pi / 180.0) * dz_stage / xypixelsize
 
 
-def get_deskew_function(input_shape, dz_stage=0.299401, xypixelsize=0.1040, angle=31.8, interp_order=1):
+def get_deskew_function(input_shape: Iterable[int],
+                        dz_stage: float =0.299401,
+                        xypixelsize: float = 0.1040,
+                        angle: float = 31.8,
+                        interp_order: int = 1) -> Callable:
     """ 
     returns a ready to use deskew function using partial function evaluation
     
@@ -132,7 +137,11 @@ def get_deskew_function(input_shape, dz_stage=0.299401, xypixelsize=0.1040, angl
     return deskew_func
 
 
-def get_rotate_function(input_shape, dz_stage=0.299401, xypixelsize=0.1040, angle=31.8, interp_order=1):
+def get_rotate_function(input_shape: Iterable[int],
+                        dz_stage: float = 0.299401,
+                        xypixelsize: float = 0.1040,
+                        angle: float = 31.8,
+                        interp_order: int = 1) -> Callable:
     dz = np.sin(angle * np.pi / 180.0) * dz_stage
     dx = xypixelsize
     deskewfactor = np.cos(angle * np.pi / 180.0) * dz_stage / dx

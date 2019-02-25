@@ -100,7 +100,7 @@ class Experimentfolder(object):
         data such as dz step """
         sfiles = list((self.folder / "Stacks").rglob("*Settings.txt"))
 
-        def process_settings(sfile):
+        def process_settings(sfile: pathlib.Path) -> pd.DataFrame:
             settings = extract_lls_metadata(str(sfile))
             settings["stack_folder"] = str(sfile.parent)
             settings["stack_name"] = str(sfile.parent.name)

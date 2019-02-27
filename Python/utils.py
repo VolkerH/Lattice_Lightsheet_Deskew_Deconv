@@ -1,5 +1,5 @@
 import pathlib
-import tifffile
+import imsave
 import warnings
 import logging
 import numpy as np
@@ -8,7 +8,7 @@ from typing import Union
 logging.getLogger("tifffile").setLevel(logging.ERROR)
 
 
-def write_tiff_createfolder(path: Union[str, pathlib.Path], nparray: np.ndarray):
+def write_tiff_createfolder(path: Union[str, pathlib.Path], nparray: np.ndarray, **opt_kwargs):
     """ 
     given a
     path: to a tiff file of type pathlib.Path (or str), and
@@ -20,7 +20,6 @@ def write_tiff_createfolder(path: Union[str, pathlib.Path], nparray: np.ndarray)
     if not isinstance(path, pathlib.Path):
         path = pathlib.Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
-    # print(f"writing {str(path)}")
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
-        tifffile.imsave(str(path), nparray)
+        imsave.imsave(str(path), nparray, **opt_kwargs)

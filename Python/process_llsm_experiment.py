@@ -21,6 +21,7 @@ logging.getLogger("tifffile").setLevel(logging.ERROR)
 
 
 class ExperimentProcessor(object):
+
     def __init__(self,
                  ef: Experimentfolder,
                  skip_files_regex: Iterable[str],
@@ -72,6 +73,8 @@ class ExperimentProcessor(object):
         self.output_dtype = np.uint16  # set the output dtype (no check for overflow)
         self.verbose: bool = False  # if True, prints diagnostic output
 
+        self.output_tiff_compress: Union[int, str] = 0  # compression level 0-9 or string (see tifffile)
+
         # Initialize dask
         if dask_settings is not None:
             warnings.warn("Dask support not yet implemented")
@@ -111,7 +114,7 @@ class ExperimentProcessor(object):
         """
         return self.exp_outfolder / "PSF_Processed" / f"{wavelength}" / f"PSF_{wavelength}.tif"
 
-    def create_MIP(self, vol, outfile: pathlib.Path):
+    def create_MIP(self, vol, outfile: pathlib.Path, write_func: Callable = write_tiff_createfolder):
         """
         Creates a MIP from a volume and saves it to outfile
 
@@ -123,20 +126,22 @@ class ExperimentProcessor(object):
         try:
             if self.MIP_method == "montage":  # montages all three MIPs into a single 2D image
                 montage = get_projection_montage(vol, gap=self._montage_gap)
-                write_tiff_createfolder(str(outfile), montage)
+                write_func(str(outfile), montage)
             if self.MIP_method == "multi":  # saves the projections as individual files
                 projections = get_projections(vol)
                 for i, proj in enumerate(projections):
                     axisfile = outfile.parent / f"{outfile.stem}_{i}{outfile.suffix}"
-                    write_tiff_createfolder(str(axisfile), proj)
+                    write_func(str(axisfile), proj)
         except:
             warnings.warn(f"Error creating MIP {str(outfile)} ... skipping")
 
     def process_file(self,
                      infile: pathlib.Path,
+                     write_func: Callable = write_tiff_createfolder,
                      deskew_func: Optional[Callable] = None,
                      rotate_func: Optional[Callable] = None,
-                     deconv_func: Optional[Callable] = None):
+                     deconv_func: Optional[Callable] = None,
+                     ):
         """ process an individual file 
         file: input file (pathlib.Path object)
 
@@ -158,7 +163,7 @@ class ExperimentProcessor(object):
             if self.verbose:
                 warnings.warn(
                     f"nothing to do for {infile}. All outputs already exist. '\
-                                 Disable skip-existing to overwrite"
+                                 Disable skip_existing to overwrite"
                 )
             return
 
@@ -171,13 +176,13 @@ class ExperimentProcessor(object):
 
         if self.do_deskew and not checks[0]:
             deskewed = deskew_func(vol_raw)
-            write_tiff_createfolder(outfiles["deskew"], deskewed.astype(self.output_dtype))
+            write_func(outfiles["deskew"], deskewed.astype(self.output_dtype))
             if self.do_MIP:
                 self.create_MIP(deskewed.astype(self.output_dtype), outfiles["deskew/MIP"])
             # write settings/metadata file to subfolder
         if self.do_rotate and not checks[1]:
             rotated = rotate_func(vol_raw)
-            write_tiff_createfolder(outfiles["rotate"], rotated.astype(self.output_dtype))
+            write_func(outfiles["rotate"], rotated.astype(self.output_dtype))
             if self.do_MIP:
                 self.create_MIP(rotated.astype(self.output_dtype), outfiles["rotate/MIP"])
             # write settings/metadata file to subfolder
@@ -186,18 +191,20 @@ class ExperimentProcessor(object):
             # TODO: write deconv settings
             if self.do_deconv_deskew:
                 deconv_deskewed = deskew_func(deconv_raw)
-                write_tiff_createfolder(outfiles["deconv/deskew"], deconv_deskewed.astype(self.output_dtype))
+                write_func(outfiles["deconv/deskew"], deconv_deskewed.astype(self.output_dtype))
                 if self.do_MIP:
                     self.create_MIP(deconv_deskewed.astype(self.output_dtype), outfiles["deconv/deskew/MIP"])
             if self.do_deconv_rotate:
                 deconv_rotated = rotate_func(deconv_raw)
-                write_tiff_createfolder(outfiles["deconv/rotate"], deconv_rotated.astype(self.output_dtype))
+                write_func(outfiles["deconv/rotate"], deconv_rotated.astype(self.output_dtype))
                 if self.do_MIP:
                     self.create_MIP(deconv_rotated.astype(self.output_dtype), outfiles["deconv/rotate/MIP"])
 
-    def process_stack_subfolder(self, stack_name: str):
+    def process_stack_subfolder(self, stack_name: str, write_func: Callable = write_tiff_createfolder):
         """ process the subfolder called stack_name
         """
+
+        warnings.warn("Fix write_func stuff to include compression and units")
 
         # get subset of files and settings specific to this stack
         subset_files = self.ef.stackfiles[self.ef.stackfiles.stack_name == stack_name]
@@ -268,7 +275,7 @@ class ExperimentProcessor(object):
                 processed_psfs[wavelength] = generate_psf(
                     psffile, tmp_vol.shape, dz_stage, dz_galvo, xypixelsize, angle
                 )
-                write_tiff_createfolder(self.generate_PSF_name(wavelength), processed_psfs[wavelength])
+                write_func(self.generate_PSF_name(wavelength), processed_psfs[wavelength])
                 deconv_functions[wavelength] = get_deconv_function(
                     processed_psfs[wavelength], deconvolver, self.deconv_n_iter
                 )

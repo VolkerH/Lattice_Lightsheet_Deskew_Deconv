@@ -24,8 +24,8 @@ class ExperimentProcessor(object):
 
     def __init__(self,
                  ef: Experimentfolder,
-                 skip_files_regex: Iterable[str],
                  skip_existing: bool = True,
+                 skip_files_regex: Optional[Iterable[str]] = None,
                  exp_outfolder: Optional[Union[str, pathlib.Path]] = None,
                  dask_settings: Optional[Dict[str, Any]] = None):
         """
@@ -137,11 +137,11 @@ class ExperimentProcessor(object):
 
     def process_file(self,
                      infile: pathlib.Path,
-                     write_func: Callable = write_tiff_createfolder,
                      deskew_func: Optional[Callable] = None,
                      rotate_func: Optional[Callable] = None,
                      deconv_func: Optional[Callable] = None,
-                     ):
+                     write_func: Optional[Callable] = write_tiff_createfolder
+                    ):
         """ process an individual file 
         file: input file (pathlib.Path object)
 

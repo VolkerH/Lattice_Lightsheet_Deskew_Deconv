@@ -65,7 +65,7 @@ def psf_rescale_centre_skew_pad(psf: np.ndarray,
     Returns: tuple (processed_psf, transform_matrix)
     """
     scale_psf = transforms.scale_pixel_z(dz_ratio_galvo_stage)
-    shift = transforms.shift_centre(2 * np.ndarray(centre))
+    shift = transforms.shift_centre(2 * np.array(centre))
     unshift = transforms.unshift_centre(output_shape)
     if deskewfactor:
         skew = inv(transforms.deskew_mat(deskewfactor))

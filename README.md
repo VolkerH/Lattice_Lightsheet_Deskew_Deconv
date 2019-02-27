@@ -21,7 +21,7 @@ The following notebooks illustrate the basic algorithms used and provide example
 
 * **Deskewing** [Jupyter notebook that illustrates how to deskew and rotate with affine transforms](./Python/00_Lattice_Light_Sheet_Deskew.ipynb)
 * **Deconvolution** [Demonstrates deskewing both on raw data with skewed PSF (less voxels, therefore faster) and on deskewed data with unskewed PSF](./Python/01_Lattice_Light_Sheet_Deconvolution.ipynb)
-* **Batch Processing** [Batch process experiment folders](./Python/03_Batch_Process.ipynb) 
+* **Batch Processing** [Batch process experiment folders](./Python/02_Batch_Process.ipynb) 
 
 ## Sample image and PSF file
 

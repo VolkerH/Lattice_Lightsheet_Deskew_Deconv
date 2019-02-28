@@ -2,12 +2,14 @@
 
 ## CAVEAT: 
 
-work in progress ! 
+Work in progress with frequent changes. The notebooks referenced below document the basic algorithms 
+(this is not going to change). The batch processing framework around it is still under active development.
+I aim to make this `pip`-installable and provide a command-line tool for batch processing soon. 
 
 ## About - Lattice Lightsheet Deskew/Deconv in Python
 
-This repository will provide python based-code for deskewing and deconvolution of lattice light sheet data.
-The aim is that the code can run **both** on GPU and on CPU (although deconvolution on GPU will be painfully slow). 
+This repository provides python based-code for deskewing and deconvolution of lattice light sheet data.
+The aim is that the code can run **both** on GPU and on CPU (although deconvolution on CPU will be painfully slow). 
 
 Currently this is mainly leveraging two libraries:
 
@@ -33,19 +35,18 @@ https://www.dropbox.com/s/34ei5jj0qgylf8q/drp1_dendra2_test_1_CamA_ch0_stack0000
 * corresponding PSF
 https://www.dropbox.com/s/39ljascy4vkp0tk/488_PSF_galvo_CamA_ch0_stack0000_488nm_0000000msec_0016836088msecAbs.tif?dl=0
 
-### How is this different from LLspy ?
+### How is this different from `LLSpy` and `cudaDeconv`?
 
-LLSpy (by Talley Lambert https://github.com/tlambert03/LLSpy) is a front-end for batch processing lattice-lightsheet data.
-The actual processing is performed by the `cudaDeconv` library from Janelia, which unfortunately is not developed in the
-open and only distributed after signing a NDA. 
+LLSpy (by Talley Lambert https://github.com/tlambert03/LLSpy) is a batch processing GUI front-end for processing lattice-lightsheet data.
+The deconvolution and deskew part of the processing in LLSpy is performed by the `cudaDeconv` library from Janelia Farm.
+LLSpy also includes corrections for residual pixel intensities and provides registration between channels - none of this
+is currently implemented in this project.
+This project was started as an effort to provide an open-source, GPU accelerated implementation of deskew/deconvolve
+ because `cudaDeconv` was only available as a binary distribution (after signing a non-disclosure-agreement). Meanwhile,
+ Dan Milkie has released `cudaDeconv` as open source: https://github.com/dmilkie/cudaDecon .  
+  
 
-The code in this repository is intended to develop into an open-source, GPU accelerated library 
-for deskewing and deconvolving lattice light sheet data. The open source license still needs to be determined 
-after discussions with @jni and other contributors. I assume it will be the same license that scikit-image uses.
+## License
 
-## Todo (these will be added to the issue tracker) 
-
-* add more example datasets
-* add batch sumission for HPC clusters using `dask-jobqueue` https://github.com/dask/dask-jobqueue
-* Flowdec currently requires CUDA for GPU-acceleration. An `opencl`-based deconvolution would open this up to more graphics accelerators. Alternatively check whether we can get the `ROCm` version of tensorflow running with flowdec to at least support AMD workstation cards https://github.com/ROCmSoftwarePlatform/tensorflow-upstream
-* develop and add PSF processing utilities, similar to PSF distiller
+The code in this repository falls under a BSD-3 license, with the exceptions of parts from other projects (which will
+have their respective licenses reproduced in the source files.)

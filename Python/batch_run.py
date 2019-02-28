@@ -6,6 +6,7 @@ input_folder = "/home/vhil0002/Data/20181219_Felix_Dendra2_Drp1_test/"
 fixed_settings_file = "fixed_settings.json"
 ef = Experimentfolder(input_folder, fixed_settings_file)
 
+
 ep = ExperimentProcessor(ef, exp_outfolder="/tmp/volker_batch_deskew3/Experiment_20181219/")
 ep.do_MIP = True # create MIPs.
 
@@ -20,6 +21,7 @@ ep.skip_existing = False
 ep.deconv_n_iter = 10
 ep.bg_subtract_value = 95
 ep.MIP_method = "montage"
+
 
 subfolder = ef.stacks[3]
 print(subfolder)

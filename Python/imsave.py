@@ -61,7 +61,7 @@ def reorderstack(arr: np.ndarray, inorder: str = 'zyx', outorder: str = 'tzcyx')
 def imsave(
            outpath: str,
            arr: np.array,
-           compress: Union[int, str] = 4,
+           compress: Union[int, str] = 0,
            dx: float = 1, dz: float = 1, dt: float = 1,
            unit: str = 'micron'):
     """sample wrapper for tifffile.imsave imagej=True.

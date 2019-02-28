@@ -1,3 +1,13 @@
+Note that this repository contains some code fragments from other projects.
+
+For these code fragments the respective license, where applicable, is reproduced
+in the source files. 
+If I have omitted anything by accident, please notify me and I will fix it.
+
+
+
+The original contributions from this repository are covered by a:
+
 BSD 3-Clause License
 
 Copyright (c) 2019, Volker Hilsenstein
@@ -27,3 +37,4 @@ SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
 CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
 OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+

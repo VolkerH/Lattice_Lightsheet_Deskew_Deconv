@@ -21,9 +21,9 @@ Currently this is mainly leveraging two libraries:
 
 The following notebooks illustrate the basic algorithms used and provide examples for batch processing.
 
-* **Deskewing** [Jupyter notebook that illustrates how to deskew and rotate with affine transforms](./Python/00_Lattice_Light_Sheet_Deskew.ipynb)
-* **Deconvolution** [Demonstrates deskewing both on raw data with skewed PSF (less voxels, therefore faster) and on deskewed data with unskewed PSF](./Python/01_Lattice_Light_Sheet_Deconvolution.ipynb)
-* **Batch Processing** [Batch process experiment folders](./Python/02_Batch_Process.ipynb) 
+* **Deskewing** [Jupyter notebook that illustrates how to deskew and rotate with affine transforms](./examples/00_Lattice_Light_Sheet_Deskew.ipynb)
+* **Deconvolution** [Demonstrates deskewing both on raw data with skewed PSF (less voxels, therefore faster) and on deskewed data with unskewed PSF](./examples/01_Lattice_Light_Sheet_Deconvolution.ipynb)
+* **Batch Processing** [Batch process experiment folders](./examples/02_Batch_Process.ipynb) 
 
 ## Sample image and PSF file
 

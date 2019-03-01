@@ -1,9 +1,10 @@
 import pathlib
 import re
 import pandas as pd
-from extract_metadata import extract_lls_metadata
-from settings import read_fixed_settings
 from typing import Union, List, Any
+from .extract_metadata import extract_lls_metadata
+from .settings import read_fixed_settings
+
 
 
 class Experimentfolder(object):

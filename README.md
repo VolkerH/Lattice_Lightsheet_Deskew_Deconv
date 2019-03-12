@@ -16,7 +16,6 @@ Currently this is mainly leveraging two libraries:
 * `gputools` by Martin Weigert (https://github.com/maweigert/gputools) for affine transformations. Note that you may need to install the develop branch of `gputools` as the code in this repo relies on this fixes https://github.com/maweigert/gputools/issues/12 that may not have made it into the main branch (at the time of this writing) and the conda channels.
 * `flowdec` by Eric Czech (https://github.com/hammerlab/flowdec) for deconvolution.
 
-
 ## Documentation and explanation of the algorithm 
 
 The following notebooks illustrate the basic algorithms used and provide examples for batch processing.

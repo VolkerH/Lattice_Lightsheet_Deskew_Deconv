@@ -6,6 +6,12 @@ import numpy as np
 import warnings
 from typing import Optional, Callable
 
+import os
+
+
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3' 
+
+
 def init_rl_deconvolver():
     """ initializes the tensorflow-based Richardson Lucy Deconvolver """
 
@@ -31,12 +37,9 @@ def deconv_volume(vol: np.ndarray,
 
     # TODO: this is a quick test whether tensorflow session configs can be used to limit the memory use
     # if it works, add an option to pass in a tensorflow session config.
-    gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.5)
-    config = tf.ConfigProto(log_device_placement=True, gpu_options=gpu_options)
+    gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.85)
+    config = tf.ConfigProto(log_device_placement=False, gpu_options=gpu_options)
     config.gpu_options.allow_growth = True
-
-    # Given an acquisition "acq" defined somewhere
-    res = algo.run(acq, niter=10, session_config=config)
 
     aq = fd_data.Acquisition(data=vol, kernel=psf)
     if observer is not None:

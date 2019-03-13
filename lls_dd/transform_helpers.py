@@ -5,6 +5,7 @@ from numpy.linalg import inv
 from functools import partial
 from typing import Union, Iterable, Callable
 
+#from scipy.ndimage import affine_transform
 from .gputools_wrapper import affine_transform_gputools as affine_transform
 from .transforms import rot_around_y, deskew_mat, shift_centre, unshift_centre, scale_pixel_z
 

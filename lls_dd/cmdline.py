@@ -3,7 +3,7 @@ import os
 import pathlib
 import click
 from .settings import create_fixed_settings
-
+import pdb
 
 class ProcessCmd(object):
     def __init__(self, exp_folder, fixed_settings=None, home=None, debug=False):
@@ -37,9 +37,9 @@ pass_process_cmd = click.make_pass_decorator(ProcessCmd)
 @click.option('-f', '--fixed_settings', default=None, help='.json file with fixed settings')
 @click.argument('exp_folder')
 @click.pass_context
-def cli(ctx, exp_folder, home, debug, settings):
+def cli(ctx, exp_folder, home, debug, fixed_settings):
     """lls_dd: lattice lightsheet deskew and deconvolution utility"""
-    ctx.obj = ProcessCmd(exp_folder, fixed_settings=fixed_settings, home, debug, settings)
+    ctx.obj = ProcessCmd(exp_folder, fixed_settings, home, debug)
 
 
 @cli.command(short_help='Processes an experiment folder or individual stacks therein.')
@@ -63,12 +63,12 @@ def cli(ctx, exp_folder, home, debug, settings):
 @click.option('--lzw', default=0, help="lossless compression level for tiff (0-9). 0 is no compression")
 @click.argument('out_folder', required=False)
 @pass_process_cmd
-def process(processcmd, out_folder, MIP, deskew_rot, deskew, iterations, number,
+def process(processcmd, out_folder, mip, deskew_rot, deskew, iterations, number,
             decon_rot, decon_deskew, mstyle, skip_existing, lzw):
     """experiment folder to process (required) output folder (optional) Otherwise same as input"""
 
     ep = ExperimentProcessor(processcmd.ef, out_folder)
-    ep.do_MIP = MIP
+    ep.do_MIP = mip
     ep.do_deskew = deskew
     ep.do_rotate = deskew_rot
     ep.do_deconv = iterations > 0
@@ -78,6 +78,7 @@ def process(processcmd, out_folder, MIP, deskew_rot, deskew, iterations, number,
     ep.deconv_n_iter = iterations
     ep.lzw = lzw
     ep.MIP_method = mstyle
+    #pdb.set_trace()
     print(processcmd.exp_folder)
     if out_folder:
         print(processcmd.hello())
@@ -86,8 +87,9 @@ def process(processcmd, out_folder, MIP, deskew_rot, deskew, iterations, number,
         print("no output folder, will use input folder")
     if number:
         print(f"processing stack nunmber {int(number)}")
-        ep.process_stack_subfolder(processcmd.exp_folder.stacks[0])
-
+        ep.process_stack_subfolder(processcmd.ef.stacks[0])
+    else:
+        print(f"proessing all stacks")
 
 @cli.command()
 @pass_process_cmd

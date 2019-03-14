@@ -81,11 +81,12 @@ def process(processcmd, out_folder, mip, deskew_rot, deskew, backend, iterations
     print(ep)
 
     if number:
-        print(f"processing stack nunmber {int(number)}")
-        ep.process_stack_subfolder(processcmd.ef.stacks[0])
+        print(f"processing stack number {int(number)}")
+        ep.process_stack_subfolder(processcmd.ef.stacks[int(number)])
     else:
-        print(f"proessing all stacks")
-
+        print(f"processing all stacks")
+        ep.process_all()
+        
 @cli.command()
 @pass_process_cmd
 def stacks(processcmd):

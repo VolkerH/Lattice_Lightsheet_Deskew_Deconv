@@ -1,11 +1,14 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from gputools_wrapper import affine_transform_gputools as affine_transform
+import warnings
 from numpy.linalg import inv
 from functools import partial
-from transforms import rot_around_y, deskew_mat, shift_centre, unshift_centre, scale_pixel_z
 from typing import Union, Iterable, Callable
-import warnings
+
+#from scipy.ndimage import affine_transform
+from .gputools_wrapper import affine_transform_gputools as affine_transform
+from .transforms import rot_around_y, deskew_mat, shift_centre, unshift_centre, scale_pixel_z
+
 
 def ceil_to_mulitple(x, base: int = 4):
     """ rounds up to the nearest multiple of base

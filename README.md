@@ -13,17 +13,16 @@ The aim is that the code can run **both** on GPU and on CPU (although deconvolut
 
 Currently this is mainly leveraging two libraries:
 
-* `gputools` by Martin Weigert (https://github.com/maweigert/gputools) for affine transformations. Note that you may need to install the develop branch of `gputools` as the code in this repo relies on this fixes https://github.com/maweigert/gputools/issues/12 that may not have made it into the main branch (at the time of this writing) and the conda channels.
-* `flowdec` by Eric Czech (https://github.com/hammerlab/flowdec) for deconvolution.
+* `gputools` by Martin Weigert (https://github.com/maweigert/gputools) for affine transformations and optionally also for OpenCL-based deconvolution. Note that you may need to install the develop branch of `gputools` as the code in this repo relies on this fixes https://github.com/maweigert/gputools/issues/12 that may not have made it into the main branch (at the time of this writing) and the conda channels.
+* `flowdec` by Eric Czech (https://github.com/hammerlab/flowdec). This is the default library used for deconvolution, based on tensorflow.
 
-
-## Documentation and explanation of the algorithm 
+## Documentation and explanation of the algorithms
 
 The following notebooks illustrate the basic algorithms used and provide examples for batch processing.
 
-* **Deskewing** [Jupyter notebook that illustrates how to deskew and rotate with affine transforms](./Python/00_Lattice_Light_Sheet_Deskew.ipynb)
-* **Deconvolution** [Demonstrates deskewing both on raw data with skewed PSF (less voxels, therefore faster) and on deskewed data with unskewed PSF](./Python/01_Lattice_Light_Sheet_Deconvolution.ipynb)
-* **Batch Processing** [Batch process experiment folders](./Python/02_Batch_Process.ipynb) 
+* **Deskewing** [Jupyter notebook that illustrates how to deskew and rotate with affine transforms](./examples/00_Lattice_Light_Sheet_Deskew.ipynb)
+* **Deconvolution** [Demonstrates deskewing both on raw data with skewed PSF (less voxels, therefore faster) and on deskewed data with unskewed PSF](./examples/01_Lattice_Light_Sheet_Deconvolution.ipynb)
+* **Batch Processing** [Batch process experiment folders](./examples/02_Batch_Process.ipynb) (**OUTDATED**)
 
 ## Sample image and PSF file
 

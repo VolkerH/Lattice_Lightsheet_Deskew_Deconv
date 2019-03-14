@@ -1,10 +1,10 @@
 import pathlib
-import imsave
 import warnings
 import logging
 import numpy as np
 from typing import Union
 
+from .imsave import imsave
 logging.getLogger("tifffile").setLevel(logging.ERROR)
 
 
@@ -22,4 +22,4 @@ def write_tiff_createfolder(path: Union[str, pathlib.Path], nparray: np.ndarray,
     path.parent.mkdir(parents=True, exist_ok=True)
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
-        imsave.imsave(str(path), nparray, **opt_kwargs)
+        imsave(str(path), nparray, **opt_kwargs)

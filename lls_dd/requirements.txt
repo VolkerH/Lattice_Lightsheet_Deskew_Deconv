@@ -1,0 +1,10 @@
+natsort
+gputools >= 0.2.8
+scikit-image
+tifffile
+tensorflow
+flowdec
+numpy 
+matplotlib
+pandas
+click

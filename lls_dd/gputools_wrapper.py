@@ -1,5 +1,4 @@
 from builtins import tuple
-
 import gputools
 import numpy as np
 import warnings

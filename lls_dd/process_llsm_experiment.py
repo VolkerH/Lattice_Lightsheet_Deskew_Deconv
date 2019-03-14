@@ -4,21 +4,21 @@ import pathlib
 import tifffile
 import tqdm
 import numpy as np
+import os
 from typing import Iterable, Callable, Optional, Union, Any, Dict, DefaultDict
 from collections import defaultdict
-
 from .experiment_folder import Experimentfolder
 from .psf_tools import generate_psf
 from .transform_helpers import get_rotate_function, get_deskew_function, get_projections, get_projection_montage
 from .utils import write_tiff_createfolder
-from .deconvolution import init_rl_deconvolver, get_deconv_function
-#from .deconvolution_gputools import init_rl_deconvolver, get_deconv_function
+# note: deconvolution functions will be imported according to chosen backend later
+
+# tifffile produces too many warnings for the Labview-generated tiffs. Silence it:
 logging.getLogger("tifffile").setLevel(logging.ERROR)
 
 # TODO: change terminology: stacks -> timeseries ?
 #     :                     single timepoint -> stack
 # TODO: discuss with David
-
 
 class ExperimentProcessor(object):
 
@@ -52,33 +52,68 @@ class ExperimentProcessor(object):
         else:
             self.exp_outfolder = pathlib.Path(exp_outfolder)
 
-        # Set default processing options
-
-        # as it is such a cheap operation to perform
+        # Set processing options
+        # camera
+        self.bg_subtract_value: int = 100  # Value to be subtracted from each input file ~200 for Orca
+      
+        # output options
         self.do_MIP: bool = True  # if set, MIPs will be generated for all of the operations
         self.do_deskew: bool = True
         self.do_rotate: bool = True
-        self.do_deconv: bool = False  # set to True if performing deconvolution on skewed raw volume
-        self.do_deconv_deskew: bool = False  # if you want the deconv deskewed
-        self.do_deconv_rotate: bool = False  # if you want the deconv rotated
-        self.do_deconv = self.do_deconv or self.do_deconv_deskew or self.do_deconv_rotate
-
-        self.bg_subtract_value: int = 100  # Value to be subtracted from each input file ~200 for Orca
-        self.deconv_n_iter: int = 10
-
         self.MIP_method: str = "montage"  # one of ["montage", "multi"]
         self._montage_gap: int = 10  # gap between projections in orthogonal view montage
         self.output_imaris: bool = False  # TODO: implement imaris output using Talley's imarispy
         self.output_bdv: bool = False  # TODO:
         self.output_dtype = np.uint16  # set the output dtype (no check for overflow)
+        self.output_tiff_compress: Union[int, str] = 0  # compression level 0-9 or string (see tifffile)
+      
+        # deconvolution and deconvolution output options
+        self.do_deconv: bool = False  # set to True if performing deconvolution on skewed raw volume
+        self.deconv_backend: str = "flowdec" # can be "flowdec" or "gputools"
+        self.do_deconv_deskew: bool = False  # if you want the deconv deskewed
+        self.do_deconv_rotate: bool = False  # if you want the deconv rotated
+        self.do_deconv = self.do_deconv or self.do_deconv_deskew or self.do_deconv_rotate
+        self.deconv_n_iter: int = 10
+
+        # general
         self.verbose: bool = False  # if True, prints diagnostic output
 
-        self.output_tiff_compress: Union[int, str] = 0  # compression level 0-9 or string (see tifffile)
-
-        # Initialize dask
+        # Initialize dask (TODO: implement or abandon)
         if dask_settings is not None:
             warnings.warn("Dask support not yet implemented")
 
+    def _description_variable_pairs(self):
+        return [["skip existing output files", self.skip_existing],\
+            ["Perform max intensity projections", self.do_MIP],\
+            ["max intensity projection output", self.MIP_method],\
+            ["Perform deskew", self.do_deskew],\
+            ["Rotate to coverslip", self.do_rotate],\
+            ["Perform deconvolution", self.do_deconv],\
+            ["Devonvolution backend", self.deconv_backend],\
+            ["Number of iterations for deconvolution", self.deconv_n_iter],\
+            ["Perform deskew after deconvolution", self.do_deconv_deskew],\
+            ["Rotate to coverslip after deconvolution", self.do_deconv_rotate],\
+            ["Background subtraction value for camera", self.bg_subtract_value],\
+        ] # TODO: add missing
+
+    def __repr__(self):
+        # this should actually be more concise than __str__ but,
+        # __str__ will do for now
+        return self.__str__()
+
+    def __str__(self):
+        msg = ["ExperimentProcessor summary"]
+        msg += ["===========================\n"]
+        msg += ["Processor for experiment folder:", f"{self.ef.folder}"]
+        msg += ["Output folder:"]
+        msg += [f"{self.exp_outfolder}"]
+        msg += ["Processing options:"]
+        msg += ["==================:"]
+        pairs = self._description_variable_pairs()
+        for pair in pairs:
+            msg.append(f"{pair[0]}: {pair[1]}")
+        return ('\n'.join(msg))
+        
     def generate_outputnames(self, infile: pathlib.Path):
         """ 
         generates the output paths (including subfolders) for the processed data 
@@ -203,7 +238,6 @@ class ExperimentProcessor(object):
     def process_stack_subfolder(self, stack_name: str, write_func: Callable = write_tiff_createfolder):
         """ process the subfolder called stack_name
         """
-
         warnings.warn("Fix write_func stuff to include compression and units")
 
         # get subset of files and settings specific to this stack
@@ -236,8 +270,15 @@ class ExperimentProcessor(object):
         processed_psfs = {}
         deconv_functions: DefaultDict[str, Union[None, Callable]] = defaultdict(lambda: None)
         if self.do_deconv:
+            # import selected backend
+            if self.deconv_backend == "gputools":
+                from .deconvolution_gputools import init_rl_deconvolver, get_deconv_function
+            elif self.deconv_backend == "flowdec":
+                from .deconvolution import init_rl_deconvolver, get_deconv_function
+            else:
+                warnings.warn(f"unknown deconvolution backend {self.deconv_backend}")
+                exit(-1)
             # Prepare deconvolution:
-
             # Here we initialize a single deconvolver that gets used
             # for all deconvolutions.
             # I have doubts whether this will work if several threads run in parallel,

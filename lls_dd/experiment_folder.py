@@ -1,11 +1,10 @@
 import pathlib
 import re
 import pandas as pd
+from natsort import natsorted
 from typing import Union, List, Any
 from .extract_metadata import extract_lls_metadata
 from .settings import read_fixed_settings
-
-
 
 class Experimentfolder(object):
     """
@@ -14,7 +13,7 @@ class Experimentfolder(object):
 
     regex_PSF = re.compile(r".*PSF[/\\](?P<wavelength>\d+)[/\\](?P<scantype>.*)[/\\].*_(?P<abssec>\d+)msecAbs\.tif")
     regex_Stackfiles = re.compile(
-        r".*[/\\](?P<prefix>.+)_ch(?P<channel>\d+)_[^\d]*(?P<zslice>\d+)_(?P<wavelength>\d+)nm_(?P<reltime_ms>\d+)msec_(?P<abstime_ms>\d+)msec*"
+        r".*[/\\](?P<prefix>.+)_ch(?P<channel>\d+)_[^\d]*(?P<stack_nr>\d+)_(?P<wavelength>\d+)nm_(?P<reltime_ms>\d+)msec_(?P<abstime_ms>\d+)msec*"
     )
 
     def __init__(self, f: Union[str, pathlib.Path], fixed_settings_file: str = "fixed_settings.json"):
@@ -34,20 +33,39 @@ class Experimentfolder(object):
         self.defaultPSFs = None  # TODO
 
         self.scan_folder()
-        # self.print_diagnostics()
 
-    def print_diagnostics(self):
-        print("Summary of experiment folder " + str())
-        print("Stacks:")
-        print(self.stacks)
-        print("Stack files:")
-        print(self.stacks)
-        print("PSFs:")
-        print(self.PSFs)
-        print("Settings:")
-        print(self.settings)
+    def __repr__(self):
+        return f"""
+        folder: {self.folder}
+        fixed_settings_file: {self.fixed_settings_file}
+        settings: {self.settings}
+        PFSs: {self.PSFs}
+        defaultPSFs: {self.defaultPSFs}
+        stacks: {self.stacks}
+        stackfiles: {self.stackfiles}
+        """
+    def _str_stacks(self):
+        msg=["Stacks:"]
+        for i,stack in enumerate(self.stacks): 
+            msg.append(f"[{i}] {stack}")
+        return('\n'.join(msg))
+
+    def _str_PSFs(self):
+        msg=["PSFs:"]
+        msg.append(str(self.PSFs[["name","wavelength", "scantype"]]))
+        return('\n'.join(msg))
+
+    def __str__(self):
+        msg = ["Summary of Experimentfolder:"] 
+        msg.append("============================\n") 
+        msg += [f"folder path: {str(self.folder)}", ""] 
+        msg.append(self._str_stacks())
+        msg.append("")
+        msg.append(self._str_PSFs())
+        return('\n'.join(msg))
 
     def scan_folder(self):
+        """ scans the experimentfolder and finds stack folder, stack files, PSFs and parses settings """
         self.stackfiles = self.find_stacks()
         self.stacks = list(pd.unique(self.stackfiles.stack_name))
         self.PSFs = self.find_PSFs()
@@ -58,21 +76,21 @@ class Experimentfolder(object):
     def find_PSFs(self) -> pd.DataFrame:
         """ finds and parses file names of PSF
         """
-
         files = (self.folder / "PSF").rglob("*.tif")
         files = map(str, files)  # type: ignore
-
         # This complicated list comprehension
         # extracts some fields from the Path using
         # a regular expression
 
-        # TODO: what happens if an unexpected tiff file is present?
+        # TODO: what happens if unexpected tiff files are present?
         matchdict = [{**self.regex_PSF.match(f).groupdict(), **{"file": f}} for f in files]  # type: ignore
         df = pd.DataFrame(matchdict)
+        df["name"] = df.file.apply(lambda x: pathlib.Path(x).name)
         return df
 
     def find_OTFs(self):
-        """ checks whether OTFs exist and finds and parses filenames of OTFs"""
+        """ checks whether OTFs exist and finds and parses filenames of OTFs
+        (this is currently not used... placeholder in case we are using cudaDeconv)."""
         pass
 
     def find_stacks(self) -> pd.DataFrame:
@@ -94,6 +112,7 @@ class Experimentfolder(object):
                 {**self.regex_Stackfiles.match(f).groupdict(), **{"file": f, "stack_name": stackname}}  # type: ignore
                 for f in stackfiles
             ]
+        matched_stacks = natsorted(matched_stacks)
         return pd.DataFrame(matched_stacks)
 
     def find_settings(self) -> pd.DataFrame:

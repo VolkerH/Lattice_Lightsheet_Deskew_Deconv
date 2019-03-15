@@ -271,7 +271,9 @@ class ExperimentProcessor(object):
         deconv_functions: DefaultDict[str, Union[None, Callable]] = defaultdict(lambda: None)
         if self.do_deconv:
             # import selected backend
-            if self.deconv_backend == "gputools":
+            if self.deconv_backend == "gputools_rewrite":
+                from .deconv_gputools_rewrite import init_rl_deconvolver, get_deconv_function
+            elif self.deconv_backend == "gputools":
                 from .deconvolution_gputools import init_rl_deconvolver, get_deconv_function
             elif self.deconv_backend == "flowdec":
                 from .deconvolution import init_rl_deconvolver, get_deconv_function
@@ -327,6 +329,8 @@ class ExperimentProcessor(object):
                 print(f"Processing {index}: {row.file}")
             # TODO implement regex check for files to skip
             wavelength = row.wavelength
+            # what happens if I use a ThreadPoolExectutor/ProcessPoolExecutor here? How will they share
+            # the GPU resources.
             self.process_file(pathlib.Path(row.file), deskew_func, rotate_func, deconv_functions[wavelength])
 
     def process_all(self):

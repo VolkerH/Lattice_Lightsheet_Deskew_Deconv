@@ -1,4 +1,6 @@
 """ Lucy richardson deconvolution
+
+based on code from Martin Weigert's gputools
 """
 
 import os

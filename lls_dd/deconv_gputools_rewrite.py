@@ -1,4 +1,6 @@
 """ Lucy richardson deconvolution
+
+based on code from Martin Weigert's gputools
 """
 
 import os
@@ -95,6 +97,9 @@ class Deconvolver_RL_gputools(object):
         return np.abs(u_g.get())
 
 
+## below are simple wrappers to make the interface compatible with the functions
+## that were originally written for deconvolution with flowdec
+## eventually all of those should be refactured into a classs
 def init_rl_deconvolver():
     """ dummy, nothing to initialiaze for the gputools deconv
     Note: maybe one can setup and keep the fft plan, this may require

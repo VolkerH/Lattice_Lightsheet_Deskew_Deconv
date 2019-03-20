@@ -67,7 +67,7 @@ class Experimentfolder(object):
     def scan_folder(self):
         """ scans the experimentfolder and finds stack folder, stack files, PSFs and parses settings """
         self.stackfiles = self.find_stacks()
-        self.stacks = list(pd.unique(self.stackfiles.stack_name))
+        self.stacks = natsorted(list(pd.unique(self.stackfiles.stack_name)))
         self.PSFs = self.find_PSFs()
         self.settings = self.find_settings()
         self.psf_settings = self.find_PSF_settings()
@@ -94,7 +94,7 @@ class Experimentfolder(object):
         pass
 
     def find_stacks(self) -> pd.DataFrame:
-        """ finds all the stacks in stacks and creates a data table with metadata
+        """ finds all the tiff-volumes in stacks and creates a data table with metadata
         """
         # Glob folders below stack first, want to avoid
         # recursive glob on .tifs because this will also
@@ -112,7 +112,7 @@ class Experimentfolder(object):
                 {**self.regex_Stackfiles.match(f).groupdict(), **{"file": f, "stack_name": stackname}}  # type: ignore
                 for f in stackfiles
             ]
-        matched_stacks = natsorted(matched_stacks)
+        # TODO: (flagged for removal) matched_stacks = natsorted(matched_stacks)
         return pd.DataFrame(matched_stacks)
 
     def find_settings(self) -> pd.DataFrame:

@@ -1,5 +1,7 @@
 from builtins import tuple
-import gputools
+# this import is failing
+# from gputools.convolve import gaussian_filter
+from gputools import affine
 import numpy as np
 import warnings
 from typing import Iterable, Optional, Any, Union, Sequence
@@ -72,10 +74,25 @@ def affine_transform_gputools(
 
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
-        result = gputools.affine(data=input_data, mat=matrix, mode=mode, interpolation=interpolation)
+        result = affine(data=input_data, mat=matrix, mode=mode, interpolation=interpolation)
 
     if needs_crop and output_shape is not None:
         i, j, k = output_shape
         result = result[0:i, 0:j, 0:k]
 
     return result
+
+
+def gaussian_gputools(image, sigma=1, output=None, mode='nearest', cval=0, multichannel=None, preserve_range=False, truncate=4):
+    """ 
+    scipy.filters.gaussian compatible wrapper around gputools gaussian
+    """
+
+    if mode!='nearest' or cval!=0 or multichannel or preserve_range:
+        warnings.warn(f"gputools wrapper for gaussian currently doesn't support options"\
+            "mode, cval, multichannel or preserve_range. These are simply ignored")
+
+    if output:
+        warnings.warn(f'passing an output variable in has not been tested with gputools wrapper')
+    # TODO: check what happens if a numpy array is passed into res_g (expects OCLArray)
+    return gaussian_filter(data=image, sigma=sigma, truncate=truncate, normalize=True, res_g=output)

@@ -17,7 +17,6 @@ from scipy.ndimage import affine_transform
 
 import logging
 logger = logging.getLogger('lls_dd')
-logger.setLevel(logging.DEBUG)
 
 def psf_find_maximum(psf: np.ndarray, maxiter: int = 20, gauss_sigma: float = 1.5):
     """

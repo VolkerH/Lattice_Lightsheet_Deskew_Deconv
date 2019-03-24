@@ -4,6 +4,8 @@ import warnings
 from numpy.linalg import inv
 from functools import partial
 from typing import Union, Iterable, Callable
+import logging
+logger = logging.getLogger('lls_dd')
 
 #from scipy.ndimage import affine_transform
 from .gputools_wrapper import affine_transform_gputools as affine_transform
@@ -69,6 +71,7 @@ def get_output_dimensions(aff: np.ndarray, vol_or_shape: Union[np.ndarray, Itera
     # +1 to avoid fencepost error
     dims = np.max(corners, axis=0) - np.min(corners, axis=0) + 1
     dims = ceil_to_mulitple(dims, 2)
+    logger.debug(f"get_output_dimensions: output dimensions: {dims[:3]}")
     return dims[:3].astype(np.int)
 
 
@@ -117,8 +120,9 @@ def get_projection_montage(vol: np.ndarray, gap: int = 10, proj_function: Callab
 
 
 def calc_deskew_factor(dz_stage: float, xypixelsize: float, angle: float) -> float:
-    return np.cos(angle * np.pi / 180.0) * dz_stage / xypixelsize
-
+    deskewf = np.cos(angle * np.pi / 180.0) * dz_stage / xypixelsize
+    logger.debug(f"deskew factor caclulated as {deskewf}")
+    return deskewf
 
 def get_deskew_function(input_shape: Iterable[int],
                         dz_stage: float =0.299401,
@@ -136,6 +140,8 @@ def get_deskew_function(input_shape: Iterable[int],
 
     skew = deskew_mat(calc_deskew_factor(dz_stage, xypixelsize, angle))
     output_shape = get_output_dimensions(skew, input_shape)
+    logger.debug(f"deskew function: skew matrix: {skew}")
+    logger.debug(f"deskew function: output shape: {output_shape}")
     deskew_func = partial(affine_transform, matrix=inv(skew), output_shape=output_shape, order=interp_order)
     return deskew_func
 
@@ -150,10 +156,17 @@ def get_rotate_function(input_shape: Iterable[int],
     deskewfactor = np.cos(angle * np.pi / 180.0) * dz_stage / dx
     dzdx_aspect = dz / dx
 
+    logger.debug(f"rotate function: dx: {dx}")
+    logger.debug(f"rotate function: dz: {dz}")
+    logger.debug(f"rotate function: deskewfactor: {deskewfactor}")
+    logger.debug(f"rotate function: dzdx_aspect: {dzdx_aspect}")
+
     # shift volume such that centre is at (0,0,0) for rotations
     shift = shift_centre(input_shape)
+    logger.debug(f"rotate function: shift matrix {shift}")
     # Build deskew matrix
     skew = deskew_mat(deskewfactor)
+    logger.debug(f"")
     # scale z to obtain isotropic pixels
     scale = scale_pixel_z(dzdx_aspect)
     # rotate
@@ -165,6 +178,10 @@ def get_rotate_function(input_shape: Iterable[int],
 
     # add unshift to bring 0,0,0 to centre of output volume from centre
     unshift_final = unshift_centre(output_shape)
+    logger.debug(f"rotate function: unshift matrix: {unshift_final}")
+    logger.debug(f"rotate function: output shape: {output_shape}")
     all_in_one = unshift_final @ rot @ scale @ skew @ shift
+    logger.debug(f"rotate function: all in one: {all_in_one}")
+    logger.debug(f"rotate function: all in one: {inv(all_in_one)}")
     rotate_func = partial(affine_transform, matrix=inv(all_in_one), output_shape=output_shape, order=interp_order)
     return rotate_func

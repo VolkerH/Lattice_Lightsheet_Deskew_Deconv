@@ -30,7 +30,7 @@ def get_transformed_corners(aff: np.ndarray, vol_or_shape: Union[np.ndarray, Ite
     # get the dimensions of the array.
     # see whether we got a volume
     if np.array(vol_or_shape).ndim == 3:
-        d0, d1, d2 = np.ndarray(vol_or_shape).shape
+        d0, d1, d2 = np.array(vol_or_shape).shape
     elif np.array(vol_or_shape).ndim == 1:
         d0, d1, d2 = vol_or_shape
     else:

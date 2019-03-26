@@ -5,7 +5,7 @@ from typing import Union
 
 # The code in this file is derived from code in Talley Lambert's LLSpy project
 # https://github.com/tlambert03/LLSpy/blob/develop/llspy/util.py
-# 
+#
 # The license associated with LLSpy is reproduced below
 
 # also see https://pypi.org/project/tifffile/
@@ -45,10 +45,14 @@ COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER I
 AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH
 THE SOFTWARE OR THE USE OR OTHER DEALINGS WITH THE SOFTWARE.
 """
-def reorderstack(arr: np.ndarray, inorder: str = 'zyx', outorder: str = 'tzcyx'):
+
+
+def reorderstack(arr: np.ndarray, inorder: str = "zyx", outorder: str = "tzcyx"):
     """rearrange order of array, used when resaving a file for Fiji."""
     inorder = inorder.lower()
-    assert arr.ndim == len(inorder), 'The array dimensions must match the inorder dimensions'
+    assert arr.ndim == len(
+        inorder
+    ), "The array dimensions must match the inorder dimensions"
     for _ in range(len(outorder) - arr.ndim):
         arr = np.expand_dims(arr, 0)
     for i in outorder:
@@ -59,28 +63,39 @@ def reorderstack(arr: np.ndarray, inorder: str = 'zyx', outorder: str = 'tzcyx')
 
 
 def imsave(
-           outpath: str,
-           arr: np.array,
-           compress: Union[int, str] = 0,
-           dx: float = 1, dz: float = 1, dt: float = 1,
-           unit: str = 'micron'):
+    outpath: str,
+    arr: np.array,
+    compress: Union[int, str] = 0,
+    dx: float = 1,
+    dz: float = 1,
+    dt: float = 1,
+    unit: str = "micron",
+):
     """sample wrapper for tifffile.imsave imagej=True.
     see documentation in tiffile
     """
     # TODO: actually the array should be in TZCYXS order according to tifffile docu. S == Series ??
     # array must be in TZCYX order
     md = {
-        'unit': unit,
-        'spacing': dz,
-        'finterval': dt,
-        'hyperstack': 'true',
-        'mode': 'composite',
-        'loop': 'true',
+        "unit": unit,
+        "spacing": dz,
+        "finterval": dt,
+        "hyperstack": "true",
+        "mode": "composite",
+        "loop": "true",
     }
 
     big_t = True if arr.nbytes > 3758096384 else False  # > 3.5GB make a bigTiff
     if arr.ndim == 3:
         arr = reorderstack(arr)  # assume that 3 dimension array is ZYX
     with warnings.catch_warnings():
-        warnings.simplefilter("ignore")
-        tifffile.imsave(outpath, arr, compress=compress, bigtiff=big_t, imagej=True, resolution=(1 / dx, 1 / dx), metadata=md)
+        warnings.simplefilter("ignore ")
+        tifffile.imsave(
+            outpath,
+            arr,
+            compress=compress,
+            bigtiff=big_t,
+            imagej=True,
+            resolution=(1 / dx, 1 / dx),
+            metadata=md,
+        )

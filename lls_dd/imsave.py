@@ -1,6 +1,7 @@
 import tifffile
 import warnings
 import numpy as np
+import logging
 from typing import Union
 
 # The code in this file is derived from code in Talley Lambert's LLSpy project
@@ -47,6 +48,8 @@ THE SOFTWARE OR THE USE OR OTHER DEALINGS WITH THE SOFTWARE.
 """
 
 
+logger = logging.getLogger('lls_dd')
+
 def reorderstack(arr: np.ndarray, inorder: str = "zyx", outorder: str = "tzcyx"):
     """rearrange order of array, used when resaving a file for Fiji."""
     inorder = inorder.lower()
@@ -89,13 +92,14 @@ def imsave(
     if arr.ndim == 3:
         arr = reorderstack(arr)  # assume that 3 dimension array is ZYX
     with warnings.catch_warnings():
-        warnings.simplefilter("ignore ")
+        warnings.simplefilter("ignore")
+        logger.debug(f"saving {outpath}")
         tifffile.imsave(
             outpath,
             arr,
             compress=compress,
             bigtiff=big_t,
-            imagej=True,
+            imagej=False,
             resolution=(1 / dx, 1 / dx),
             metadata=md,
         )

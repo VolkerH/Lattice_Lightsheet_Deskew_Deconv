@@ -10,8 +10,8 @@ from collections import defaultdict
 from .experiment_folder import Experimentfolder
 from .psf_tools import generate_psf
 from .transform_helpers import (
-    get_rotate_function,
     get_deskew_function,
+    get_rotate_to_coverslip_function,
     get_projections,
     get_projection_montage,
 )
@@ -22,21 +22,13 @@ from .utils import write_tiff_createfolder
 
 # tifffile produces too many warnings for the Labview-generated tiffs. Silence it:
 logging.getLogger("tifffile").setLevel(logging.ERROR)
-
-import logging
-
 logger = logging.getLogger("lls_dd")
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.ERROR) # TODO: combine with verbose in ExperimentProcessor ?
 
 
 # TODO: change terminology: stacks -> timeseries ?
 #     :                     single timepoint -> stack
 # TODO: discuss with David
-
-
-def none_func():
-    """ Simple dummy function (for type checker) mypy happy. """
-    pass
 
 
 class ExperimentProcessor(object):
@@ -46,7 +38,6 @@ class ExperimentProcessor(object):
         skip_existing: bool = True,
         skip_files_regex: Optional[Iterable[str]] = None,
         exp_outfolder: Optional[Union[str, pathlib.Path]] = None,
-        dask_settings: Optional[Dict[str, Any]] = None,
     ):
         """
         Input:
@@ -57,9 +48,6 @@ class ExperimentProcessor(object):
                         be disregarded. (useful to not process unwanted wavelengths)
         exp_outfolder: (optional) if the output subfolders are not to be created in the input experiment folder,
                        provide the desired output folder here. Can be string or Pathlib.Path object.
-        dask_settings: (not yet implemented)
-                      dictionary of settings if dask is to be used to distribute jobs.
-                      :type ef: Experimentfolder
         """
         self.ef: Experimentfolder = ef
 
@@ -95,7 +83,7 @@ class ExperimentProcessor(object):
         self.do_deconv: bool = False  # set to True if performing deconvolution on skewed raw volume
         self.deconv_backend: str = "flowdec"  # can be "flowdec" or "gputools"
         self.do_deconv_deskew: bool = False  # if you want the deconv deskewed
-        self.do_deconv_rotate: bool = False  # if you want the deconv rotated
+        self.do_deconv_rotate: bool = True  # if you want the deconv rotated
         self.do_deconv = (
             self.do_deconv or self.do_deconv_deskew or self.do_deconv_rotate
         )
@@ -103,10 +91,6 @@ class ExperimentProcessor(object):
 
         # general
         self.verbose: bool = False  # if True, prints diagnostic output
-
-        # Initialize dask (TODO: implement or abandon)
-        if dask_settings is not None:
-            warnings.warn("Dask support not yet implemented")
 
     def _description_variable_pairs(self):
         return [
@@ -141,14 +125,20 @@ class ExperimentProcessor(object):
             msg.append(f"{pair[0]}: {pair[1]}")
         return "\n".join(msg)
 
-    def generate_outputnames(self, infile: pathlib.Path):
-        """ 
-        generates the output paths (including subfolders) for the processed data 
-        inputs:
-        infile: pathlib.Path object for the input file
+    def generate_outputnames(self, infile: pathlib.Path) -> Dict[str, pathlib.Path]:
+        """generate full output paths for the processed volumes
+        
+        Parameters
+        ----------
+        infile : pathlib.Path
+            input file path from which the output paths will be derived from
 
-        returns: dictionary with pathlib.path commands
+        Returns
+        -------
+        Dict[str, pathlib.Path]
+            dictionary of Path objects for the various output files
         """
+
         outfiles = {}
         parents = infile.parents
         suffix = infile.suffix
@@ -192,10 +182,20 @@ class ExperimentProcessor(object):
 
         return outfiles
 
-    def generate_PSF_name(self, wavelength):
-        """ 
-        generates the output path (including subfolders) for the PSF file
+    def generate_PSF_name(self, wavelength: Union[str, int]) -> pathlib.Path:
+        """generates the output Path object (including subfolders) for the PSF file
+        
+        Parameters
+        ----------
+        wavelength : Union[str, int]
+            wavelength for this channel
+        
+        Returns
+        -------
+        pathlib.Path
+            PSF filename
         """
+        
         return (
             self.exp_outfolder
             / "PSF_Processed"
@@ -204,13 +204,25 @@ class ExperimentProcessor(object):
         )
 
     def create_MIP(
-        self, vol, outfile: pathlib.Path, write_func: Callable = write_tiff_createfolder
-    ):
-        """
-        Creates a MIP from a volume and saves it to outfile
+        self, vol: np.array, outfile: pathlib.Path, write_func: Callable = write_tiff_createfolder
+    ):  
+        """creates an image file with a maximum intensity projection of outfile
+        
+        Parameters
+        ----------
+        vol : np.array
+            volume for which to create MIP
+        outfile : pathlib.Path
+            Path for the output file. Suffix will be modified for multi method
+        write_func : Callable, optional
+            function that handles writing the file
+        
 
-        vol: input volume (ndarray)
-        outfile: output file path (suffix will be modified for "multi" method)
+        Notes
+        -----
+
+        The type of MIP is also affected by the instance variable
+        `self.MIP_method`
         """
         assert self.MIP_method in ["montage", "multi"]
 
@@ -236,12 +248,23 @@ class ExperimentProcessor(object):
         deconv_func: Optional[Callable] = None,
         write_func: Callable = write_tiff_createfolder,
     ):
-        """ process an individual file 
-        file: input file (pathlib.Path object)
+        """Process a single volume according to the self.do_* flags
+        
+        This method handles deskewing, rotating, deconvolving and
+        for a single volume.
 
-        deskew_func: the deskew function
-        rotate_func: the rotate function 
-        deconv_func: the deconv function
+        Parameters
+        ----------
+        infile : pathlib.Path
+            Path to input volume
+        deskew_func : Optional[Callable], optional
+            function that handles deskewing of a raw volume
+        rotate_func : Optional[Callable], optional
+            function that handles scaling and coverslip rotation of a deskewed volume
+        deconv_func : Optional[Callable], optional
+            function that handles deconvolution of a raw volume
+        write_func : Callable, optional
+            function that handles writing of the images        
         """
 
         outfiles = self.generate_outputnames(infile)
@@ -269,37 +292,48 @@ class ExperimentProcessor(object):
         )  # TODO see issue https://github.com/VolkerH/Lattice_Lightsheet_Deskew_Deconv/issues/13
         # vol_raw = np.clip(vol_raw, a_min=0, a_max=None).astype(np.uint16)  # in-place clipping of negative values
 
-        if self.do_deskew and not checks[0] and deskew_func:
+        # The following case handling is ugly 
+        # (and got even uglier due to type checking (assert statements)
+        # and due to use of multi-step affine transform which requires us
+        # to deskew and keep intermediate result for rotations)
+        if (self.do_deskew and not checks[0]) or (self.do_rotate and not checks[1]):
+            assert(deskew_func is not None)
             deskewed = deskew_func(vol_raw)
-            write_func(outfiles["deskew"], deskewed.astype(self.output_dtype))
-            if self.do_MIP:
-                self.create_MIP(
-                    deskewed.astype(self.output_dtype), outfiles["deskew/MIP"]
-                )
-            # write settings/metadata file to subfolder
-        if self.do_rotate and not checks[1] and rotate_func:
-            rotated = rotate_func(vol_raw)
+            if self.do_deskew and not checks[0]:
+                write_func(outfiles["deskew"], deskewed.astype(self.output_dtype))
+                if self.do_MIP:
+                    self.create_MIP(
+                        deskewed.astype(self.output_dtype), outfiles["deskew/MIP"]
+                    )
+            # TODO write settings/metadata file to subfolder
+        if self.do_rotate and not checks[1]:
+            assert(rotate_func is not None)
+            rotated = rotate_func(deskewed)
             write_func(outfiles["rotate"], rotated.astype(self.output_dtype))
             if self.do_MIP:
                 self.create_MIP(
                     rotated.astype(self.output_dtype), outfiles["rotate/MIP"]
                 )
             # write settings/metadata file to subfolder
-        if self.do_deconv and deconv_func:
+        if self.do_deconv:
+            assert(deconv_func is not None)
             deconv_raw = deconv_func(vol_raw)
             # TODO: write deconv settings
-            if self.do_deconv_deskew and deskew_func:
+            if self.do_deconv_deskew and not checks[2] or self.do_deconv_rotate and not checks[3]:
+                assert(deskew_func is not None)
                 deconv_deskewed = deskew_func(deconv_raw)
-                write_func(
-                    outfiles["deconv/deskew"], deconv_deskewed.astype(self.output_dtype)
-                )
-                if self.do_MIP:
-                    self.create_MIP(
-                        deconv_deskewed.astype(self.output_dtype),
-                        outfiles["deconv/deskew/MIP"],
+                if self.do_deconv_deskew:
+                    write_func(
+                        outfiles["deconv/deskew"], deconv_deskewed.astype(self.output_dtype)
                     )
-            if self.do_deconv_rotate and rotate_func:
-                deconv_rotated = rotate_func(deconv_raw)
+                    if self.do_MIP:
+                        self.create_MIP(
+                            deconv_deskewed.astype(self.output_dtype),
+                            outfiles["deconv/deskew/MIP"],
+                        )
+            if self.do_deconv_rotate and not checks[3]:
+                assert(rotate_func is not None)
+                deconv_rotated = rotate_func(deconv_deskewed)
                 write_func(
                     outfiles["deconv/rotate"], deconv_rotated.astype(self.output_dtype)
                 )
@@ -312,7 +346,14 @@ class ExperimentProcessor(object):
     def process_stack_subfolder(
         self, stack_name: str, write_func: Callable = write_tiff_createfolder
     ):
-        """ process the subfolder called stack_name
+        """Process all files in a "Stack" folder of an Experiment folder
+        
+        Parameters
+        ----------
+        stack_name : str
+            name of the Stack folder (just the subfolder name, not the full path)
+        write_func : Callable, optional
+            function that handles image writing
         """
         warnings.warn("Fix write_func stuff to include compression and units")
 
@@ -344,7 +385,7 @@ class ExperimentProcessor(object):
         deskew_func = get_deskew_function(tmp_vol.shape, dz_stage, xypixelsize, angle)
         if self.verbose:
             print("Generating rotate function")
-        rotate_func = get_rotate_function(tmp_vol.shape, dz_stage, xypixelsize, angle)
+        rotate_func = get_rotate_to_coverslip_function(tmp_vol.shape, dz_stage, xypixelsize, angle)
 
         processed_psfs = {}
         deconv_functions: DefaultDict[str, Union[None, Callable]] = defaultdict(
@@ -436,8 +477,7 @@ class ExperimentProcessor(object):
             )
 
     def process_all(self):
-        """
-        Process all time series (stacks) in experiment folder
+        """Process all time series (stacks) in experiment folder
         """
         for stack in tqdm.tqdm(self.ef.stacks):
             self.process_stack_subfolder(stack)

@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import warnings
 from numpy.linalg import inv
 from functools import partial
-from typing import Union, Iterable, Callable
+from typing import Union, Iterable, Callable, Optional
 import logging
 
 logger = logging.getLogger("lls_dd")
@@ -20,9 +20,23 @@ from .transforms import (
 
 
 def ceil_to_mulitple(x, base: int = 4):
-    """ rounds up to the nearest multiple of base
-    input can be a numpy array or any scalar
+    """rounds up to the nearest integer multiple of base
+    
+    Parameters
+    ----------
+    x : scalar or np.array
+        value/s to round up from
+    base : int, optional
+        round up to multiples of base (the default is 4)
+
+    Returns
+    -------
+
+    scalar or np.array:
+        rounded up value/s
+    
     """
+
     return (np.int(base) * np.ceil(np.array(x).astype(np.float) / base)).astype(np.int)
 
 
@@ -91,8 +105,21 @@ def get_output_dimensions(
 def get_projections(
     in_array: np.ndarray, fun: Callable = np.max
 ) -> Iterable[np.ndarray]:
-    """ given an array, projects along each axis using the function fun (defaults to np.max).
-    Returns a mapping (iterator) of projections """
+    """given an array, projects along each axis using the function fun (defaults to np.max).
+    
+    Parameters
+    ----------
+    in_array : np.ndarray
+        input array
+    fun : Callable, optional
+        function to use for projecting along axis (the default is np.max)
+    
+    Returns
+    -------
+    Iterable[np.ndarray]
+        Returns a mapping (iterator) of projections
+    
+    """
     projections = map(lambda ax: fun(in_array, axis=ax), range(in_array.ndim))
     return projections
 
@@ -124,12 +151,25 @@ def imprint_coordinate_system(
 def get_projection_montage(
     vol: np.ndarray, gap: int = 10, proj_function: Callable = np.max
 ) -> np.ndarray:
-    """ 
-    given a spim volume vol, creates a montage with all three projections
-    (orthogonal views)
-    gap specifies the number of zero fill pixels to seperate the projections
-    proj_function: allows to pass in other functions to create the projections (e.g. np.median)
+    """ given a volume vol, creates a montage with all three projections (orthogonal views)
+
+    
+    Parameters
+    ----------
+    vol : np.ndarray
+        input volume
+    gap : int, optional
+        gap between projections in montage (the default is 10 pixels)
+    proj_function : Callable, optional
+        function to create the projection (the default is np.max, which performs maximum projection)
+    
+    Returns
+    -------
+    np.ndarray
+        the montage of all projections
     """
+
+    assert len(vol.shape) == 3, "only implemented for 3D-volumes"
     nz, ny, nx = vol.shape
     m = np.zeros((ny + nz + gap, nx + nz + gap), dtype=vol.dtype)
     m[:ny, :nx] = proj_function(vol, axis=0)
@@ -139,6 +179,23 @@ def get_projection_montage(
 
 
 def calc_deskew_factor(dz_stage: float, xypixelsize: float, angle: float) -> float:
+    """calculates the deskew factor for the affine transform
+    
+    Parameters
+    ----------
+    dz_stage : float
+        stage step size in z direction
+    xypixelsize : float
+        pixel size in object space (use same units as for dz_stage)
+    angle : float
+        light sheet angle relative to stage in degrees
+    
+    Returns
+    -------
+    float
+        deskew factor
+    """
+
     deskewf = np.cos(angle * np.pi / 180.0) * dz_stage / xypixelsize
     logger.debug(f"deskew factor caclulated as {deskewf}")
     return deskewf
@@ -146,19 +203,41 @@ def calc_deskew_factor(dz_stage: float, xypixelsize: float, angle: float) -> flo
 
 def get_deskew_function(
     input_shape: Iterable[int],
-    dz_stage: float = 0.299_401,
-    xypixelsize: float = 0.1040,
-    angle: float = 31.8,
+    dz_stage: float,
+    xypixelsize: float,
+    angle: float,
     interp_order: int = 1,
 ) -> Callable:
-    """ 
-    returns a ready to use deskew function using partial function evaluation
+
+    """Generate a deskew function for processing raw volumes with the provided parameters
     
+    Parameters
+    ----------
+    input_shape: Iterable[int]
+        raw input volume shape (typically tuple)
+    dz_stage : float
+        stage step size in z direction
+    xypixelsize : float
+        pixel size in object space (use same units as for dz_stage)
+    angle : float
+        light sheet angle relative to stage in degrees
+    interp_order : int
+        interpolation order to use for affine transform (default is 1)
+
+    Returns
+    -------
+    Callable
+        function f that deskews an input volume f(np.array: vol) -> np.array
+    
+    
+    Notes
+    -----
     use functools.partial to achieve this
-    TODO: also read up on toolz and a function currying here
-    https://toolz.readthedocs.io/en/latest/curry.html
-    https://github.com/elegant-scipy/elegant-scipy/blob/2e65e7fe0fbf69e9fb45e0cf4d90e85b7a0a7ae4/markdown/ch8.markdown
     """
+
+    # TODO: also read up on toolz and a function currying here
+    # https://toolz.readthedocs.io/en/latest/curry.html
+    # https://github.com/elegant-scipy/elegant-scipy/blob/2e65e7fe0fbf69e9fb45e0cf4d90e85b7a0a7ae4/markdown/ch8.markdown
 
     skew = deskew_mat(calc_deskew_factor(dz_stage, xypixelsize, angle))
     output_shape = get_output_dimensions(skew, input_shape)
@@ -173,13 +252,156 @@ def get_deskew_function(
     return deskew_func
 
 
-def get_rotate_function(
+def _twostep_affine(
+    vol: np.array,
+    mat1: np.array,
+    outshape1: Iterable[int],
+    mat2: np.array,
+    outshape2: Iterable[int],
+    order: int= 1,
+) -> np.array:
+    """performs two affine transforms in succession
+    
+    Parameters
+    ----------
+    vol : np.array
+        input array
+    mat1 : np.array
+        first affine matrix
+    outshape1 : Iterable[int]
+        output shape for first transform
+    mat2 : np.array
+        second affine matrix
+    outshape2 : Interable[int]
+        output shape for second matrix
+    order : Optional[int], optional
+        interpolation order (default is 1 = linear)
+    
+    Returns:
+
+    np.array:
+        transformed volume
+    """
+    # TODO: deal with "mode" ... maybe pass varargs
+    step1 = affine_transform(vol, mat1, output_shape=outshape1, order=order)
+    step2 =  affine_transform(step1, mat2, output_shape=outshape2, order=order)
+    return step2
+
+
+def get_rotate_to_coverslip_function(
+    orig_shape: Iterable[int],
+    dz_stage: float,
+    xypixelsize: float,
+    angle: float,
+    interp_order: int = 1,
+) -> Callable:
+    """Generate a function that rotates a deskewed volume to coverslip coordinates
+    
+    Parameters
+    ----------
+    orig_shape : Iterable[int]
+        shape of the original raw volume (not the shape of the deskewed volume!)
+    dz_stage : float, optional
+        stage step size in z direction
+    xypixelsize : float, optional
+        pixel size in object space (use same units as for dz_stage)
+    angle : float, optional
+        light sheet angle relative to stage in degrees
+    interp_order : int, optional
+        interpolation order to use for affine transform (default is 1)
+
+    
+    Returns
+    -------
+    Callable
+        function f that rotates a deskewed volume to coverslip coordinates f(np.array: vol) -> np.array
+    
+    Notes
+    -----
+        The returned function performs the rotation in two seperate affine transformation steps to avoid
+        aliasing (see [1]_).
+
+    References
+    ----------
+        [1] https://github.com/VolkerH/Lattice_Lightsheet_Deskew_Deconv/issues/22
+    """
+
+    dz = np.sin(angle * np.pi / 180.0) * dz_stage
+    dx = xypixelsize
+    deskewfactor = np.cos(angle * np.pi / 180.0) * dz_stage / dx
+    dzdx_aspect = dz / dx
+
+    logger.debug(f"rotate function: dx: {dx}")
+    logger.debug(f"rotate function: dz: {dz}")
+    logger.debug(f"rotate function: deskewfactor: {deskewfactor}")
+    logger.debug(f"rotate function: dzdx_aspect: {dzdx_aspect}")
+
+    # shift volume such that centre is at (0,0,0) for rotations
+
+    
+    # Build deskew matrix
+    skew = deskew_mat(deskewfactor)
+    shape_after_skew = get_output_dimensions(skew, orig_shape)
+    # matrix to scale z to obtain isotropic pixels
+    scale = scale_pixel_z(dzdx_aspect)
+    shape_after_scale = get_output_dimensions(scale, shape_after_skew)
+    shift_scaled = shift_centre(shape_after_scale)
+    # rotation matrix
+    rot = rot_around_y(-angle)
+
+    
+    # determine final output shape for an all-in-one (deskew/scale/rot) transform 
+    # (which is not actually applied)
+    shift = shift_centre(orig_shape)
+    combined = rot @ scale @ skew @ shift
+    shape_final = get_output_dimensions(combined, orig_shape)
+    # determine shape after scale/rot on deskewed, this is larger than final due to 
+    # fill pixels
+    shape_scalerot = get_output_dimensions(rot @ shift_scaled @ scale, shape_after_skew)
+
+    # calc rotshift
+
+    logger.debug(f"shape_scalerot {shape_scalerot}")
+    logger.debug(f"shape_final {shape_final}")
+    _tmp = unshift_centre(shape_final)
+    diff = (shape_scalerot[0] - shape_final[0])/2
+    logger.debug(f"diff {diff}")
+    #_tmp[0,3] -= diff
+    unshift_final = _tmp 
+    rotshift = unshift_final @ rot @ shift_scaled
+
+    logger.debug(f"rotate to coverslip: scale matrix: {scale}")
+    logger.debug(f"rotate to coverslip: outshape1: {shape_after_scale}")
+    logger.debug(f"rotate to coverslip: rotshift: {rotshift}")
+    logger.debug(f"rotate to coverslip: outshape2: {shape_final}")
+    rotate_func = partial(
+        _twostep_affine,
+        mat1=inv(scale),
+        outshape1=shape_after_scale,
+        mat2=inv(rotshift),
+        outshape2=shape_final,
+        order=interp_order
+    )
+    return rotate_func
+
+
+def get_rotate_function_all_in_one(
     input_shape: Iterable[int],
     dz_stage: float = 0.299_401,
     xypixelsize: float = 0.1040,
     angle: float = 31.8,
     interp_order: int = 1,
 ) -> Callable:
+    """ returns an all-in-one rotate function
+    that takes a raw volume and deskews and rotates 
+    it to coverslip coordinates using a single affine transform.
+    This is more efficient, but as the data are not isotropic 
+    this causes severe aliasing as interpolation between x/y and
+    z takes place.
+    Do not use !
+    For discussion see
+    https://github.com/VolkerH/Lattice_Lightsheet_Deskew_Deconv/issues/22
+    """
     dz = np.sin(angle * np.pi / 180.0) * dz_stage
     dx = xypixelsize
     deskewfactor = np.cos(angle * np.pi / 180.0) * dz_stage / dx

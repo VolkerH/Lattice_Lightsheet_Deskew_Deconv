@@ -38,7 +38,6 @@ class ExperimentProcessor(object):
         skip_existing: bool = True,
         skip_files_regex: Optional[Iterable[str]] = None,
         exp_outfolder: Optional[Union[str, pathlib.Path]] = None,
-        dask_settings: Optional[Dict[str, Any]] = None,
     ):
         """
         Input:
@@ -49,9 +48,6 @@ class ExperimentProcessor(object):
                         be disregarded. (useful to not process unwanted wavelengths)
         exp_outfolder: (optional) if the output subfolders are not to be created in the input experiment folder,
                        provide the desired output folder here. Can be string or Pathlib.Path object.
-        dask_settings: (not yet implemented)
-                      dictionary of settings if dask is to be used to distribute jobs.
-                      :type ef: Experimentfolder
         """
         self.ef: Experimentfolder = ef
 
@@ -96,10 +92,6 @@ class ExperimentProcessor(object):
         # general
         self.verbose: bool = False  # if True, prints diagnostic output
 
-        # Initialize dask (TODO: implement or abandon)
-        if dask_settings is not None:
-            warnings.warn("Dask support not yet implemented")
-
     def _description_variable_pairs(self):
         return [
             ["skip existing output files", self.skip_existing],
@@ -133,14 +125,20 @@ class ExperimentProcessor(object):
             msg.append(f"{pair[0]}: {pair[1]}")
         return "\n".join(msg)
 
-    def generate_outputnames(self, infile: pathlib.Path):
-        """ 
-        generates the output paths (including subfolders) for the processed data 
-        inputs:
-        infile: pathlib.Path object for the input file
+    def generate_outputnames(self, infile: pathlib.Path) -> Dict[str, pathlib.Path]:
+        """generate full output paths for the processed volumes
+        
+        Parameters
+        ----------
+        infile : pathlib.Path
+            input file path from which the output paths will be derived from
 
-        returns: dictionary with pathlib.path commands
+        Returns
+        -------
+        Dict[str, pathlib.Path]
+            dictionary of Path objects for the various output files
         """
+
         outfiles = {}
         parents = infile.parents
         suffix = infile.suffix
@@ -206,13 +204,25 @@ class ExperimentProcessor(object):
         )
 
     def create_MIP(
-        self, vol, outfile: pathlib.Path, write_func: Callable = write_tiff_createfolder
-    ):
-        """
-        Creates a MIP from a volume and saves it to outfile
+        self, vol: np.array, outfile: pathlib.Path, write_func: Callable = write_tiff_createfolder
+    ):  
+        """creates an image file with a maximum intensity projection of outfile
+        
+        Parameters
+        ----------
+        vol : np.array
+            volume for which to create MIP
+        outfile : pathlib.Path
+            Path for the output file. Suffix will be modified for multi method
+        write_func : Callable, optional
+            function that handles writing the file
+        
 
-        vol: input volume (ndarray)
-        outfile: output file path (suffix will be modified for "multi" method)
+        Notes
+        -----
+
+        The type of MIP is also affected by the instance variable
+        `self.MIP_method`
         """
         assert self.MIP_method in ["montage", "multi"]
 
@@ -238,12 +248,23 @@ class ExperimentProcessor(object):
         deconv_func: Optional[Callable] = None,
         write_func: Callable = write_tiff_createfolder,
     ):
-        """ process an individual file 
-        file: input file (pathlib.Path object)
+        """Process a single volume according to the self.do_* flags
+        
+        This method handles deskewing, rotating, deconvolving and
+        for a single volume.
 
-        deskew_func: the deskew function
-        rotate_func: the rotate function 
-        deconv_func: the deconv function
+        Parameters
+        ----------
+        infile : pathlib.Path
+            Path to input volume
+        deskew_func : Optional[Callable], optional
+            function that handles deskewing of a raw volume
+        rotate_func : Optional[Callable], optional
+            function that handles scaling and coverslip rotation of a deskewed volume
+        deconv_func : Optional[Callable], optional
+            function that handles deconvolution of a raw volume
+        write_func : Callable, optional
+            function that handles writing of the images        
         """
 
         outfiles = self.generate_outputnames(infile)
@@ -325,7 +346,14 @@ class ExperimentProcessor(object):
     def process_stack_subfolder(
         self, stack_name: str, write_func: Callable = write_tiff_createfolder
     ):
-        """ process the subfolder called stack_name
+        """Process all files in a "Stack" folder of an Experiment folder
+        
+        Parameters
+        ----------
+        stack_name : str
+            name of the Stack folder (just the subfolder name, not the full path)
+        write_func : Callable, optional
+            function that handles image writing
         """
         warnings.warn("Fix write_func stuff to include compression and units")
 
@@ -449,8 +477,7 @@ class ExperimentProcessor(object):
             )
 
     def process_all(self):
-        """
-        Process all time series (stacks) in experiment folder
+        """Process all time series (stacks) in experiment folder
         """
         for stack in tqdm.tqdm(self.ef.stacks):
             self.process_stack_subfolder(stack)

@@ -11,14 +11,24 @@ from .experiment_folder import Experimentfolder
 from .psf_tools import generate_psf
 from .transform_helpers import get_rotate_function, get_deskew_function, get_projections, get_projection_montage
 from .utils import write_tiff_createfolder
+#from scipy.ndimage.filters import gaussian_filter
 # note: deconvolution functions will be imported according to chosen backend later
 
 # tifffile produces too many warnings for the Labview-generated tiffs. Silence it:
 logging.getLogger("tifffile").setLevel(logging.ERROR)
 
+import logging
+logger = logging.getLogger('lls_dd')
+logger.setLevel(logging.DEBUG)
+
+
 # TODO: change terminology: stacks -> timeseries ?
 #     :                     single timepoint -> stack
 # TODO: discuss with David
+
+def none_func():
+    """ Simple dummy function (for type checker) mypy happy. """
+    pass
 
 class ExperimentProcessor(object):
 
@@ -43,7 +53,7 @@ class ExperimentProcessor(object):
         """
         self.ef: Experimentfolder = ef
 
-        self.skip_files_regex: Iterable[str] = skip_files_regex
+        self.skip_files_regex: Optional[Iterable[str]] = skip_files_regex
         self.processedPSFCache = None  # TODO: this is not currently used. Seem to reprocess PSFs for each stack?
         self.skip_existing = skip_existing
 
@@ -64,7 +74,7 @@ class ExperimentProcessor(object):
         self._montage_gap: int = 10  # gap between projections in orthogonal view montage
         self.output_imaris: bool = False  # TODO: implement imaris output using Talley's imarispy
         self.output_bdv: bool = False  # TODO:
-        self.output_dtype = np.uint16  # set the output dtype (no check for overflow)
+        self.output_dtype = np.float32 # set the output dtype (no check for overflow)
         self.output_tiff_compress: Union[int, str] = 0  # compression level 0-9 or string (see tifffile)
       
         # deconvolution and deconvolution output options
@@ -175,7 +185,7 @@ class ExperimentProcessor(object):
                      deskew_func: Optional[Callable] = None,
                      rotate_func: Optional[Callable] = None,
                      deconv_func: Optional[Callable] = None,
-                     write_func: Optional[Callable] = write_tiff_createfolder
+                     write_func: Callable = write_tiff_createfolder
                     ):
         """ process an individual file 
         file: input file (pathlib.Path object)
@@ -206,30 +216,30 @@ class ExperimentProcessor(object):
             warnings.simplefilter("ignore")
             vol_raw = tifffile.imread(str(infile))
         vol_raw = vol_raw.astype(
-            np.int) - self.bg_subtract_value  # TODO see issue https://github.com/VolkerH/Lattice_Lightsheet_Deskew_Deconv/issues/13
-        vol_raw = np.clip(vol_raw, a_min=0, a_max=None).astype(np.uint16)  # in-place clipping of negative values
+            np.float32) - self.bg_subtract_value  # TODO see issue https://github.com/VolkerH/Lattice_Lightsheet_Deskew_Deconv/issues/13
+        #vol_raw = np.clip(vol_raw, a_min=0, a_max=None).astype(np.uint16)  # in-place clipping of negative values
 
-        if self.do_deskew and not checks[0]:
+        if self.do_deskew and not checks[0] and deskew_func:
             deskewed = deskew_func(vol_raw)
             write_func(outfiles["deskew"], deskewed.astype(self.output_dtype))
             if self.do_MIP:
                 self.create_MIP(deskewed.astype(self.output_dtype), outfiles["deskew/MIP"])
             # write settings/metadata file to subfolder
-        if self.do_rotate and not checks[1]:
+        if self.do_rotate and not checks[1] and rotate_func:
             rotated = rotate_func(vol_raw)
             write_func(outfiles["rotate"], rotated.astype(self.output_dtype))
             if self.do_MIP:
                 self.create_MIP(rotated.astype(self.output_dtype), outfiles["rotate/MIP"])
             # write settings/metadata file to subfolder
-        if self.do_deconv:
+        if self.do_deconv and deconv_func:
             deconv_raw = deconv_func(vol_raw)
             # TODO: write deconv settings
-            if self.do_deconv_deskew:
+            if self.do_deconv_deskew and deskew_func:
                 deconv_deskewed = deskew_func(deconv_raw)
                 write_func(outfiles["deconv/deskew"], deconv_deskewed.astype(self.output_dtype))
                 if self.do_MIP:
                     self.create_MIP(deconv_deskewed.astype(self.output_dtype), outfiles["deconv/deskew/MIP"])
-            if self.do_deconv_rotate:
+            if self.do_deconv_rotate and rotate_func:
                 deconv_rotated = rotate_func(deconv_raw)
                 write_func(outfiles["deconv/rotate"], deconv_rotated.astype(self.output_dtype))
                 if self.do_MIP:
@@ -241,6 +251,9 @@ class ExperimentProcessor(object):
         warnings.warn("Fix write_func stuff to include compression and units")
 
         # get subset of files and settings specific to this stack
+        assert(self.ef.stackfiles is not None)
+        assert(self.ef.settings is not None)  
+        assert(self.ef.stackfiles is not None)
         subset_files = self.ef.stackfiles[self.ef.stackfiles.stack_name == stack_name]
         subset_files = subset_files.reset_index()
         stack_settings = self.ef.settings[self.ef.settings.stack_name == stack_name]
@@ -293,6 +306,8 @@ class ExperimentProcessor(object):
 
             for wavelength in wavelengths:
                 # find all PSF files matching this wavelength where scan=='Galvo'
+                assert(self.ef.PSFs is not None)
+                assert(self.ef.psf_settings is not None)
                 psf_candidates = self.ef.PSFs[
                     (self.ef.PSFs.scantype == "Galvo") & (self.ef.PSFs.wavelength == wavelength)
                     ]

@@ -89,7 +89,7 @@ def imsave(
     if arr.ndim == 3:
         arr = reorderstack(arr)  # assume that 3 dimension array is ZYX
     with warnings.catch_warnings():
-        warnings.simplefilter("ignore ")
+        warnings.simplefilter("ignore")
         tifffile.imsave(
             outpath,
             arr,

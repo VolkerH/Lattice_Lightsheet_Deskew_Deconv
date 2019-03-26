@@ -23,7 +23,7 @@ from .utils import write_tiff_createfolder
 # tifffile produces too many warnings for the Labview-generated tiffs. Silence it:
 logging.getLogger("tifffile").setLevel(logging.ERROR)
 logger = logging.getLogger("lls_dd")
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.ERROR) # TODO: combine with verbose in ExperimentProcessor ?
 
 
 # TODO: change terminology: stacks -> timeseries ?
@@ -83,7 +83,7 @@ class ExperimentProcessor(object):
         self.do_deconv: bool = False  # set to True if performing deconvolution on skewed raw volume
         self.deconv_backend: str = "flowdec"  # can be "flowdec" or "gputools"
         self.do_deconv_deskew: bool = False  # if you want the deconv deskewed
-        self.do_deconv_rotate: bool = False  # if you want the deconv rotated
+        self.do_deconv_rotate: bool = True  # if you want the deconv rotated
         self.do_deconv = (
             self.do_deconv or self.do_deconv_deskew or self.do_deconv_rotate
         )
@@ -332,7 +332,7 @@ class ExperimentProcessor(object):
                             outfiles["deconv/deskew/MIP"],
                         )
             if self.do_deconv_rotate and not checks[3]:
-                assert(self.do_deconv_rotate is not None)
+                assert(rotate_func is not None)
                 deconv_rotated = rotate_func(deconv_deskewed)
                 write_func(
                     outfiles["deconv/rotate"], deconv_rotated.astype(self.output_dtype)

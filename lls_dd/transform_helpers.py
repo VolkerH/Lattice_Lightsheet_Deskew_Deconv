@@ -283,12 +283,9 @@ def _twostep_affine(
         transformed volume
     """
     # TODO: deal with "mode" ... maybe pass varargs
-    return affine_transform(
-        affine_transform(vol, mat1, output_shape=outshape1, order=order),
-        mat2,
-        output_shape=outshape2,
-        order=order,
-    )
+    step1 = affine_transform(vol, mat1, output_shape=outshape1, order=order)
+    step2 =  affine_transform(step1, mat2, output_shape=outshape2, order=order)
+    return step2
 
 
 def get_rotate_to_coverslip_function(
@@ -364,12 +361,14 @@ def get_rotate_to_coverslip_function(
 
     # calc rotshift
 
-    
+    logger.debug(f"shape_scalerot {shape_scalerot}")
+    logger.debug(f"shape_final {shape_final}")
     _tmp = unshift_centre(shape_final)
     diff = (shape_scalerot[0] - shape_final[0])/2
-    _tmp[0,3] -= diff
+    logger.debug(f"diff {diff}")
+    #_tmp[0,3] -= diff
     unshift_final = _tmp 
-    rotshift = unshift_final @ rot
+    rotshift = unshift_final @ rot @ shift_scaled
 
     logger.debug(f"rotate to coverslip: scale matrix: {scale}")
     logger.debug(f"rotate to coverslip: outshape1: {shape_after_scale}")

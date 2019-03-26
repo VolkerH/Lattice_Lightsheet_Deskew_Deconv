@@ -10,8 +10,8 @@ from collections import defaultdict
 from .experiment_folder import Experimentfolder
 from .psf_tools import generate_psf
 from .transform_helpers import (
-    get_rotate_function,
     get_deskew_function,
+    get_rotate_to_coverslip_function,
     get_projections,
     get_projection_montage,
 )
@@ -22,9 +22,6 @@ from .utils import write_tiff_createfolder
 
 # tifffile produces too many warnings for the Labview-generated tiffs. Silence it:
 logging.getLogger("tifffile").setLevel(logging.ERROR)
-
-import logging
-
 logger = logging.getLogger("lls_dd")
 logger.setLevel(logging.DEBUG)
 
@@ -32,11 +29,6 @@ logger.setLevel(logging.DEBUG)
 # TODO: change terminology: stacks -> timeseries ?
 #     :                     single timepoint -> stack
 # TODO: discuss with David
-
-
-def none_func():
-    """ Simple dummy function (for type checker) mypy happy. """
-    pass
 
 
 class ExperimentProcessor(object):
@@ -192,10 +184,20 @@ class ExperimentProcessor(object):
 
         return outfiles
 
-    def generate_PSF_name(self, wavelength):
-        """ 
-        generates the output path (including subfolders) for the PSF file
+    def generate_PSF_name(self, wavelength: Union[str, int]) -> pathlib.Path:
+        """generates the output Path object (including subfolders) for the PSF file
+        
+        Parameters
+        ----------
+        wavelength : Union[str, int]
+            wavelength for this channel
+        
+        Returns
+        -------
+        pathlib.Path
+            PSF filename
         """
+        
         return (
             self.exp_outfolder
             / "PSF_Processed"
@@ -269,37 +271,48 @@ class ExperimentProcessor(object):
         )  # TODO see issue https://github.com/VolkerH/Lattice_Lightsheet_Deskew_Deconv/issues/13
         # vol_raw = np.clip(vol_raw, a_min=0, a_max=None).astype(np.uint16)  # in-place clipping of negative values
 
-        if self.do_deskew and not checks[0] and deskew_func:
+        # The following case handling is ugly 
+        # (and got even uglier due to type checking (assert statements)
+        # and due to use of multi-step affine transform which requires us
+        # to deskew and keep intermediate result for rotations)
+        if (self.do_deskew and not checks[0]) or (self.do_rotate and not checks[1]):
+            assert(deskew_func is not None)
             deskewed = deskew_func(vol_raw)
-            write_func(outfiles["deskew"], deskewed.astype(self.output_dtype))
-            if self.do_MIP:
-                self.create_MIP(
-                    deskewed.astype(self.output_dtype), outfiles["deskew/MIP"]
-                )
-            # write settings/metadata file to subfolder
-        if self.do_rotate and not checks[1] and rotate_func:
-            rotated = rotate_func(vol_raw)
+            if self.do_deskew and not checks[0]:
+                write_func(outfiles["deskew"], deskewed.astype(self.output_dtype))
+                if self.do_MIP:
+                    self.create_MIP(
+                        deskewed.astype(self.output_dtype), outfiles["deskew/MIP"]
+                    )
+            # TODO write settings/metadata file to subfolder
+        if self.do_rotate and not checks[1]:
+            assert(rotate_func is not None)
+            rotated = rotate_func(deskewed)
             write_func(outfiles["rotate"], rotated.astype(self.output_dtype))
             if self.do_MIP:
                 self.create_MIP(
                     rotated.astype(self.output_dtype), outfiles["rotate/MIP"]
                 )
             # write settings/metadata file to subfolder
-        if self.do_deconv and deconv_func:
+        if self.do_deconv:
+            assert(deconv_func is not None)
             deconv_raw = deconv_func(vol_raw)
             # TODO: write deconv settings
-            if self.do_deconv_deskew and deskew_func:
+            if self.do_deconv_deskew and not checks[2] or self.do_deconv_rotate and not checks[3]:
+                assert(deskew_func is not None)
                 deconv_deskewed = deskew_func(deconv_raw)
-                write_func(
-                    outfiles["deconv/deskew"], deconv_deskewed.astype(self.output_dtype)
-                )
-                if self.do_MIP:
-                    self.create_MIP(
-                        deconv_deskewed.astype(self.output_dtype),
-                        outfiles["deconv/deskew/MIP"],
+                if self.do_deconv_deskew:
+                    write_func(
+                        outfiles["deconv/deskew"], deconv_deskewed.astype(self.output_dtype)
                     )
-            if self.do_deconv_rotate and rotate_func:
-                deconv_rotated = rotate_func(deconv_raw)
+                    if self.do_MIP:
+                        self.create_MIP(
+                            deconv_deskewed.astype(self.output_dtype),
+                            outfiles["deconv/deskew/MIP"],
+                        )
+            if self.do_deconv_rotate and not checks[3]:
+                assert(self.do_deconv_rotate is not None)
+                deconv_rotated = rotate_func(deconv_deskewed)
                 write_func(
                     outfiles["deconv/rotate"], deconv_rotated.astype(self.output_dtype)
                 )
@@ -344,7 +357,7 @@ class ExperimentProcessor(object):
         deskew_func = get_deskew_function(tmp_vol.shape, dz_stage, xypixelsize, angle)
         if self.verbose:
             print("Generating rotate function")
-        rotate_func = get_rotate_function(tmp_vol.shape, dz_stage, xypixelsize, angle)
+        rotate_func = get_rotate_to_coverslip_function(tmp_vol.shape, dz_stage, xypixelsize, angle)
 
         processed_psfs = {}
         deconv_functions: DefaultDict[str, Union[None, Callable]] = defaultdict(

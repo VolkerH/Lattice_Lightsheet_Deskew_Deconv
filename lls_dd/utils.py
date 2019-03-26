@@ -5,10 +5,16 @@ import numpy as np
 from typing import Union
 
 from .imsave import imsave
+
 logging.getLogger("tifffile").setLevel(logging.ERROR)
 
+# write in a separate thread
+# https://www.geeksforgeeks.org/writing-files-background-python/
 
-def write_tiff_createfolder(path: Union[str, pathlib.Path], nparray: np.ndarray, **opt_kwargs):
+
+def write_tiff_createfolder(
+    path: Union[str, pathlib.Path], nparray: np.ndarray, **opt_kwargs
+):
     """ 
     given a
     path: to a tiff file of type pathlib.Path (or str), and

@@ -9,20 +9,24 @@ from typing import Optional, Callable
 import os
 
 
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3' 
+os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
 
 
 def init_rl_deconvolver():
     """ initializes the tensorflow-based Richardson Lucy Deconvolver """
 
-    return tfd_restoration.RichardsonLucyDeconvolver(n_dims=3, start_mode="input").initialize()
+    return tfd_restoration.RichardsonLucyDeconvolver(
+        n_dims=3, start_mode="input"
+    ).initialize()
 
 
-def deconv_volume(vol: np.ndarray,
-                  psf: np.ndarray,
-                  deconvolver: tfd_restoration.RichardsonLucyDeconvolver,
-                  n_iter: int,
-                  observer: Optional[Callable] = None) -> np.ndarray:
+def deconv_volume(
+    vol: np.ndarray,
+    psf: np.ndarray,
+    deconvolver: tfd_restoration.RichardsonLucyDeconvolver,
+    n_iter: int,
+    observer: Optional[Callable] = None,
+) -> np.ndarray:
     """ perform RL deconvolution using deconvolver 
     input:
     vol : input volume
@@ -47,8 +51,10 @@ def deconv_volume(vol: np.ndarray,
     return deconvolver.run(aq, niter=n_iter, session_config=config).data
 
 
-def get_deconv_function(psf: np.ndarray,
-                        deconvolver: tfd_restoration.RichardsonLucyDeconvolver,
-                        n_iter: int) -> Callable:
-    deconv_func = partial(deconv_volume, psf=psf, deconvolver=deconvolver, n_iter=n_iter)
+def get_deconv_function(
+    psf: np.ndarray, deconvolver: tfd_restoration.RichardsonLucyDeconvolver, n_iter: int
+) -> Callable:
+    deconv_func = partial(
+        deconv_volume, psf=psf, deconvolver=deconvolver, n_iter=n_iter
+    )
     return deconv_func

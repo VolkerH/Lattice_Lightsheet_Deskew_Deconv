@@ -9,24 +9,27 @@ from typing import Optional, Callable
 # here, I simply use the same function names as for the flowdec stuff for testing.
 # I think medium term I should use an abstract class Deconvolver with init and run methods.
 # From this abstract class I can derive concrete implemenations as child classes, e.g.
-# FlowdecDeconvolver, GPUtoolsDeconvolver and PyCudaDeconDeconvolver 
+# FlowdecDeconvolver, GPUtoolsDeconvolver and PyCudaDeconDeconvolver
 #
 # These tests are to see whether it is worth the effort
+
 
 def init_rl_deconvolver():
     """ dummy, nothing to initialiaze for the gputools deconv
     Note: maybe one can setup and keep the fft plan, this may require
     changes to gputools code.
     """
-    
+
     return None
 
 
-def deconv_volume(vol: np.ndarray,
-                  psf: np.ndarray,
-                  deconvolver: object,
-                  n_iter: int,
-                  observer: Optional[Callable] = None) -> np.ndarray:
+def deconv_volume(
+    vol: np.ndarray,
+    psf: np.ndarray,
+    deconvolver: object,
+    n_iter: int,
+    observer: Optional[Callable] = None,
+) -> np.ndarray:
     """ perform RL deconvolution using deconvolver 
     input:
     vol : input volume
@@ -45,8 +48,8 @@ def deconv_volume(vol: np.ndarray,
     return gputools.deconv.deconv_rl(vol, psf, Niter=n_iter)
 
 
-def get_deconv_function(psf: np.ndarray,
-                        deconvolver: object,
-                        n_iter: int) -> Callable:
-    deconv_func = partial(deconv_volume, psf=psf, deconvolver=deconvolver, n_iter=n_iter)
+def get_deconv_function(psf: np.ndarray, deconvolver: object, n_iter: int) -> Callable:
+    deconv_func = partial(
+        deconv_volume, psf=psf, deconvolver=deconvolver, n_iter=n_iter
+    )
     return deconv_func

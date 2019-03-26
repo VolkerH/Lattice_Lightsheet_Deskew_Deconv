@@ -12,56 +12,122 @@ class ProcessCmd(object):
             defaultpath = pathlib.Path(home) / "fixed_settings.json"
             if not defaultpath.exists():
                 print("No fixed settings file found.")
-                print(f"Generating a default one in {str(defaultpath)}")  # TODO prompt users whether they want one
+                print(
+                    f"Generating a default one in {str(defaultpath)}"
+                )  # TODO prompt users whether they want one
                 pathlib.Path(home).mkdir(parents=True, exist_ok=True)
                 create_fixed_settings(str(defaultpath))
             fixed_settings = str(defaultpath)
 
-        self.home = os.path.abspath(home or '.')
+        self.home = os.path.abspath(home or ".")
         self.debug = debug
         self.exp_folder = pathlib.Path(exp_folder)
         self.ef = Experimentfolder(self.exp_folder, fixed_settings)
+
 
 pass_process_cmd = click.make_pass_decorator(ProcessCmd)
 
 
 # For commandline interface see http://click.palletsprojects.com/en/7.x/complex/
 @click.group()
-@click.option('--home', envvar='LLS_DD_HOME', default='~/.lls_dd')
-@click.option('--debug/--no-debug', default=False,
-              envvar='LLS_DD_DEBUG')
-@click.option('-f', '--fixed_settings', default=None, help='.json file with fixed settings')
-@click.argument('exp_folder')
+@click.option("--home", envvar="LLS_DD_HOME", default="~/.lls_dd")
+@click.option("--debug/--no-debug", default=False, envvar="LLS_DD_DEBUG")
+@click.option(
+    "-f", "--fixed_settings", default=None, help=".json file with fixed settings"
+)
+@click.argument("exp_folder")
 @click.pass_context
 def cli(ctx, exp_folder, home, debug, fixed_settings):
     """lls_dd: lattice lightsheet deskew and deconvolution utility"""
     ctx.obj = ProcessCmd(exp_folder, fixed_settings, os.path.expanduser(home), debug)
 
 
-@cli.command(short_help='Processes an experiment folder or individual stacks therein.')
-@click.option('-M', '--MIP', is_flag=True, default=True, help='calculate maximum intensity projections')
-@click.option('--deskew_rot', is_flag=True, default=False,
-              help='rotate deskewed data to coverslip coordinates and save')
-@click.option('--deskew', is_flag=True, default=False, help='save deskewed data')
-@click.option('-b', '--backend', default="flowdec", help='deconvolution backend, either "flowdec" or "gputools"')
-@click.option('-i', '--iterations', default=0, help="if >0, perform deconvolution this number of Richardson-Lucy "
-                                                    "iterations")
-@click.option('-r', '--decon_rot', is_flag=True, default=True, help="if  deconvolution was chosen, rotate deconvolved "
-                                                                    "and deskewed data to coverslip coordinates"
-                                                                    " and save.")
-@click.option('-s', '--decon_deskew', is_flag=True, default=False,
-              help="if  deconvolution was chosen, rotate deconvolved "
-                   "and deskewed data to coverslip coordinates"
-                   " and save.")
-@click.option('-n', '--number', default=None, help="stack number to process. if not provided, all stacks are processed")
-@click.option('--mstyle', default='montage', type=click.Choice(['montage', 'multi']), help="MIP output style")
-@click.option('--skip_existing', is_flag=True, default='False', help="if this opting is given, files for which the output "
-                                                      "already exists will not be processed")
-@click.option('--lzw', default=0, help="lossless compression level for tiff (0-9). 0 is no compression")
-@click.argument('out_folder', required=False)
+@cli.command(short_help="Processes an experiment folder or individual stacks therein.")
+@click.option(
+    "-M",
+    "--MIP",
+    is_flag=True,
+    default=True,
+    help="calculate maximum intensity projections",
+)
+@click.option(
+    "--deskew_rot",
+    is_flag=True,
+    default=False,
+    help="rotate deskewed data to coverslip coordinates and save",
+)
+@click.option("--deskew", is_flag=True, default=False, help="save deskewed data")
+@click.option(
+    "-b",
+    "--backend",
+    default="flowdec",
+    help='deconvolution backend, either "flowdec" or "gputools"',
+)
+@click.option(
+    "-i",
+    "--iterations",
+    default=0,
+    help="if >0, perform deconvolution this number of Richardson-Lucy " "iterations",
+)
+@click.option(
+    "-r",
+    "--decon_rot",
+    is_flag=True,
+    default=True,
+    help="if  deconvolution was chosen, rotate deconvolved "
+    "and deskewed data to coverslip coordinates"
+    " and save.",
+)
+@click.option(
+    "-s",
+    "--decon_deskew",
+    is_flag=True,
+    default=False,
+    help="if  deconvolution was chosen, rotate deconvolved "
+    "and deskewed data to coverslip coordinates"
+    " and save.",
+)
+@click.option(
+    "-n",
+    "--number",
+    default=None,
+    help="stack number to process. if not provided, all stacks are processed",
+)
+@click.option(
+    "--mstyle",
+    default="montage",
+    type=click.Choice(["montage", "multi"]),
+    help="MIP output style",
+)
+@click.option(
+    "--skip_existing",
+    is_flag=True,
+    default="False",
+    help="if this opting is given, files for which the output "
+    "already exists will not be processed",
+)
+@click.option(
+    "--lzw",
+    default=0,
+    help="lossless compression level for tiff (0-9). 0 is no compression",
+)
+@click.argument("out_folder", required=False)
 @pass_process_cmd
-def process(processcmd, out_folder, mip, deskew_rot, deskew, backend, iterations, number,
-            decon_rot, decon_deskew, mstyle, skip_existing, lzw):
+def process(
+    processcmd,
+    out_folder,
+    mip,
+    deskew_rot,
+    deskew,
+    backend,
+    iterations,
+    number,
+    decon_rot,
+    decon_deskew,
+    mstyle,
+    skip_existing,
+    lzw,
+):
     """experiment folder to process (required) output folder (optional) Otherwise same as input"""
 
     ep = ExperimentProcessor(processcmd.ef, out_folder)
@@ -81,16 +147,19 @@ def process(processcmd, out_folder, mip, deskew_rot, deskew, backend, iterations
     print(ep)
 
     if number:
-        print(f"processing stack nunmber {int(number)}")
-        ep.process_stack_subfolder(processcmd.ef.stacks[0])
+        print(f"processing stack number {int(number)}")
+        ep.process_stack_subfolder(processcmd.ef.stacks[int(number)])
     else:
-        print(f"proessing all stacks")
+        print(f"processing all stacks")
+        ep.process_all()
+
 
 @cli.command()
 @pass_process_cmd
 def stacks(processcmd):
     """ list stacks in experiment folder """
     print(processcmd.ef._str_stacks())
+
 
 @cli.command()
 @pass_process_cmd

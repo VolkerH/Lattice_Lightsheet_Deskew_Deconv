@@ -4,10 +4,19 @@ import warnings
 from numpy.linalg import inv
 from functools import partial
 from typing import Union, Iterable, Callable
+import logging
 
-#from scipy.ndimage import affine_transform
+logger = logging.getLogger("lls_dd")
+
+# from scipy.ndimage import affine_transform
 from .gputools_wrapper import affine_transform_gputools as affine_transform
-from .transforms import rot_around_y, deskew_mat, shift_centre, unshift_centre, scale_pixel_z
+from .transforms import (
+    rot_around_y,
+    deskew_mat,
+    shift_centre,
+    unshift_centre,
+    scale_pixel_z,
+)
 
 
 def ceil_to_mulitple(x, base: int = 4):
@@ -17,7 +26,11 @@ def ceil_to_mulitple(x, base: int = 4):
     return (np.int(base) * np.ceil(np.array(x).astype(np.float) / base)).astype(np.int)
 
 
-def get_transformed_corners(aff: np.ndarray, vol_or_shape: Union[np.ndarray, Iterable[float]], zeroindex: bool = True):
+def get_transformed_corners(
+    aff: np.ndarray,
+    vol_or_shape: Union[np.ndarray, Iterable[float]],
+    zeroindex: bool = True,
+):
     """ Input
     aff: an affine transformation matrix 
     vol_or_shape: a numpy volume or shape of a volume. 
@@ -28,7 +41,7 @@ def get_transformed_corners(aff: np.ndarray, vol_or_shape: Union[np.ndarray, Ite
     # get the dimensions of the array.
     # see whether we got a volume
     if np.array(vol_or_shape).ndim == 3:
-        d0, d1, d2 = np.ndarray(vol_or_shape).shape
+        d0, d1, d2 = np.array(vol_or_shape).shape
     elif np.array(vol_or_shape).ndim == 1:
         d0, d1, d2 = vol_or_shape
     else:
@@ -59,7 +72,9 @@ def get_transformed_corners(aff: np.ndarray, vol_or_shape: Union[np.ndarray, Ite
     return corner_array
 
 
-def get_output_dimensions(aff: np.ndarray, vol_or_shape: Union[np.ndarray, Iterable[float]]):
+def get_output_dimensions(
+    aff: np.ndarray, vol_or_shape: Union[np.ndarray, Iterable[float]]
+):
     """ given an 4x4 affine transformation matrix aff and 
     a 3d input volume (numpy array) or volumen shape (iterable with 3 elements)
     this function returns the output dimensions required for the array after the
@@ -69,10 +84,13 @@ def get_output_dimensions(aff: np.ndarray, vol_or_shape: Union[np.ndarray, Itera
     # +1 to avoid fencepost error
     dims = np.max(corners, axis=0) - np.min(corners, axis=0) + 1
     dims = ceil_to_mulitple(dims, 2)
+    logger.debug(f"get_output_dimensions: output dimensions: {dims[:3]}")
     return dims[:3].astype(np.int)
 
 
-def get_projections(in_array: np.ndarray, fun: Callable = np.max) -> Iterable[np.ndarray]:
+def get_projections(
+    in_array: np.ndarray, fun: Callable = np.max
+) -> Iterable[np.ndarray]:
     """ given an array, projects along each axis using the function fun (defaults to np.max).
     Returns a mapping (iterator) of projections """
     projections = map(lambda ax: fun(in_array, axis=ax), range(in_array.ndim))
@@ -91,7 +109,9 @@ def plot_all(imlist: Iterable[np.ndarray], backend: str = "matplotlib"):
         warnings.warn(f"backend {backend} not yet implemented")
 
 
-def imprint_coordinate_system(volume, origin=(0, 0, 0), l=100, w=5, vals=(6000, 10000, 14000)):
+def imprint_coordinate_system(
+    volume, origin=(0, 0, 0), l=100, w=5, vals=(6000, 10000, 14000)
+):
     """ imprints coordinate system axes in a volume at origin
     axes imprints have length l and width w and intensity values in val.
     This can be quite helpful for debugging affine transforms to see how the coordinate axes are mapped."""
@@ -101,7 +121,9 @@ def imprint_coordinate_system(volume, origin=(0, 0, 0), l=100, w=5, vals=(6000, 
     volume[o[0] : o[0] + w, o[1] : o[1] + w, o[2] : o[2] + l] = vals[2]
 
 
-def get_projection_montage(vol: np.ndarray, gap: int = 10, proj_function: Callable = np.max) -> np.ndarray:
+def get_projection_montage(
+    vol: np.ndarray, gap: int = 10, proj_function: Callable = np.max
+) -> np.ndarray:
     """ 
     given a spim volume vol, creates a montage with all three projections
     (orthogonal views)
@@ -117,14 +139,18 @@ def get_projection_montage(vol: np.ndarray, gap: int = 10, proj_function: Callab
 
 
 def calc_deskew_factor(dz_stage: float, xypixelsize: float, angle: float) -> float:
-    return np.cos(angle * np.pi / 180.0) * dz_stage / xypixelsize
+    deskewf = np.cos(angle * np.pi / 180.0) * dz_stage / xypixelsize
+    logger.debug(f"deskew factor caclulated as {deskewf}")
+    return deskewf
 
 
-def get_deskew_function(input_shape: Iterable[int],
-                        dz_stage: float =0.299401,
-                        xypixelsize: float = 0.1040,
-                        angle: float = 31.8,
-                        interp_order: int = 1) -> Callable:
+def get_deskew_function(
+    input_shape: Iterable[int],
+    dz_stage: float = 0.299_401,
+    xypixelsize: float = 0.1040,
+    angle: float = 31.8,
+    interp_order: int = 1,
+) -> Callable:
     """ 
     returns a ready to use deskew function using partial function evaluation
     
@@ -136,24 +162,40 @@ def get_deskew_function(input_shape: Iterable[int],
 
     skew = deskew_mat(calc_deskew_factor(dz_stage, xypixelsize, angle))
     output_shape = get_output_dimensions(skew, input_shape)
-    deskew_func = partial(affine_transform, matrix=inv(skew), output_shape=output_shape, order=interp_order)
+    logger.debug(f"deskew function: skew matrix: {skew}")
+    logger.debug(f"deskew function: output shape: {output_shape}")
+    deskew_func = partial(
+        affine_transform,
+        matrix=inv(skew),
+        output_shape=output_shape,
+        order=interp_order,
+    )
     return deskew_func
 
 
-def get_rotate_function(input_shape: Iterable[int],
-                        dz_stage: float = 0.299401,
-                        xypixelsize: float = 0.1040,
-                        angle: float = 31.8,
-                        interp_order: int = 1) -> Callable:
+def get_rotate_function(
+    input_shape: Iterable[int],
+    dz_stage: float = 0.299_401,
+    xypixelsize: float = 0.1040,
+    angle: float = 31.8,
+    interp_order: int = 1,
+) -> Callable:
     dz = np.sin(angle * np.pi / 180.0) * dz_stage
     dx = xypixelsize
     deskewfactor = np.cos(angle * np.pi / 180.0) * dz_stage / dx
     dzdx_aspect = dz / dx
 
+    logger.debug(f"rotate function: dx: {dx}")
+    logger.debug(f"rotate function: dz: {dz}")
+    logger.debug(f"rotate function: deskewfactor: {deskewfactor}")
+    logger.debug(f"rotate function: dzdx_aspect: {dzdx_aspect}")
+
     # shift volume such that centre is at (0,0,0) for rotations
     shift = shift_centre(input_shape)
+    logger.debug(f"rotate function: shift matrix {shift}")
     # Build deskew matrix
     skew = deskew_mat(deskewfactor)
+    logger.debug(f"")
     # scale z to obtain isotropic pixels
     scale = scale_pixel_z(dzdx_aspect)
     # rotate
@@ -165,6 +207,15 @@ def get_rotate_function(input_shape: Iterable[int],
 
     # add unshift to bring 0,0,0 to centre of output volume from centre
     unshift_final = unshift_centre(output_shape)
+    logger.debug(f"rotate function: unshift matrix: {unshift_final}")
+    logger.debug(f"rotate function: output shape: {output_shape}")
     all_in_one = unshift_final @ rot @ scale @ skew @ shift
-    rotate_func = partial(affine_transform, matrix=inv(all_in_one), output_shape=output_shape, order=interp_order)
+    logger.debug(f"rotate function: all in one: {all_in_one}")
+    logger.debug(f"rotate function: all in one: {inv(all_in_one)}")
+    rotate_func = partial(
+        affine_transform,
+        matrix=inv(all_in_one),
+        output_shape=output_shape,
+        order=interp_order,
+    )
     return rotate_func

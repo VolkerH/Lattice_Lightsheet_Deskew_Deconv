@@ -5,16 +5,14 @@ import tensorflow as tf
 import numpy as np
 import warnings
 from typing import Optional, Callable
-
 import os
 
-
+# suppress tensorflow diagnostic output
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
 
 
 def init_rl_deconvolver():
-    """ initializes the tensorflow-based Richardson Lucy Deconvolver """
-
+    """initializes the tensorflow-based Richardson Lucy Deconvolver """
     return tfd_restoration.RichardsonLucyDeconvolver(
         n_dims=3, start_mode="input"
     ).initialize()
@@ -27,18 +25,29 @@ def deconv_volume(
     n_iter: int,
     observer: Optional[Callable] = None,
 ) -> np.ndarray:
-    """ perform RL deconvolution using deconvolver 
-    input:
-    vol : input volume
-    psf : psf (numpy array) 
-    deconvolver : see init_rl_deconvolver
-    n_iter: number of iterations
-
-    TODO: add observer callback so that progress updates for each iteration
-    can be displayed. Also, add option to save intermediate results within
-    a certain range of iterations.
+    """perform RL deconvolution on volume vol using deconvolver
+    
+    Parameters
+    ----------
+    vol : np.ndarray
+        input volume
+    psf : np.ndarray
+        point spread function
+    deconvolver : tfd_restoration.RichardsonLucyDeconvolver
+        see init_rl_deconvolver
+    n_iter : int
+        number of RL iterations
+    observer : Optional[Callable], optional
+        NOT YET IMPLEMENTED
+        observer callback so that progress updates for each iteration
+        can be displayed. Also, add option to save intermediate results within
+        a certain range of iterations.(the default is None)
+    
+    Returns
+    -------
+    np.ndarray
+        deconvolved volume
     """
-
     # TODO: this is a quick test whether tensorflow session configs can be used to limit the memory use
     # if it works, add an option to pass in a tensorflow session config.
     gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.85)
@@ -54,6 +63,23 @@ def deconv_volume(
 def get_deconv_function(
     psf: np.ndarray, deconvolver: tfd_restoration.RichardsonLucyDeconvolver, n_iter: int
 ) -> Callable:
+    """generates a deconvolution function with specified psf, deconvolver and number of iterations
+    
+    Parameters
+    ----------
+    psf : np.ndarray
+        point spread function
+    deconvolver : tfd_restoration.RichardsonLucyDeconvolver
+        see init_rl_deconvolver
+    n_iter : int
+        number of iterations
+    
+    Returns
+    -------
+    Callable
+        deconvolution function that simply takes an input volume and returns
+        a deconvolved volume
+    """
     deconv_func = partial(
         deconv_volume, psf=psf, deconvolver=deconvolver, n_iter=n_iter
     )

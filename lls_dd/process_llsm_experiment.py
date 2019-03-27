@@ -39,16 +39,24 @@ class ExperimentProcessor(object):
         skip_files_regex: Optional[Iterable[str]] = None,
         exp_outfolder: Optional[Union[str, pathlib.Path]] = None,
     ):
+        """Initialize an ExperimentProcessor object
+        
+        Parameters
+        ----------
+        object : [type]
+            self
+        ef : Experimentfolder
+            an initiliazed Experimentfolder object
+        skip_existing : bool, optional
+            don't process files for which the output files already exists (the default is True)
+        skip_files_regex : Optional[Iterable[str]], optional
+            a regular expression that matches files which are not to be processed (not yet implemented!)
+        exp_outfolder : Optional[Union[str, pathlib.Path]], optional
+            path to an output folder (the default is None, which means processed volumes are stored in 
+            subfolders of the original Experimentfolder)
+        
         """
-        Input:
-        ef: Experimentfolder class
-        skip_existing: if True, skip processing if the output file already exists
-        skip_files_regex: list of regular expressions that are applied
-                        to the input files. Any matching file will
-                        be disregarded. (useful to not process unwanted wavelengths)
-        exp_outfolder: (optional) if the output subfolders are not to be created in the input experiment folder,
-                       provide the desired output folder here. Can be string or Pathlib.Path object.
-        """
+      
         self.ef: Experimentfolder = ef
 
         self.skip_files_regex: Optional[Iterable[str]] = skip_files_regex
@@ -477,7 +485,7 @@ class ExperimentProcessor(object):
             )
 
     def process_all(self):
-        """Process all time series (stacks) in experiment folder
+        """Process all time series (stacks) in the Experimentfolder this ExperimentProcessor refers to
         """
         for stack in tqdm.tqdm(self.ef.stacks):
             self.process_stack_subfolder(stack)

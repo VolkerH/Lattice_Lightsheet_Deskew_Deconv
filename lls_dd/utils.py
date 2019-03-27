@@ -4,7 +4,7 @@ import logging
 import numpy as np
 from typing import Union
 
-from .imsave import imsave
+from lls_dd.imsave import imsave
 
 logging.getLogger("tifffile").setLevel(logging.ERROR)
 

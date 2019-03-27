@@ -7,15 +7,15 @@ import numpy as np
 import os
 from typing import Iterable, Callable, Optional, Union, Any, Dict, DefaultDict
 from collections import defaultdict
-from .experiment_folder import Experimentfolder
-from .psf_tools import generate_psf
-from .transform_helpers import (
+from lls_dd.experiment_folder import Experimentfolder
+from lls_dd.psf_tools import generate_psf
+from lls_dd.transform_helpers import (
     get_deskew_function,
     get_rotate_to_coverslip_function,
     get_projections,
     get_projection_montage,
 )
-from .utils import write_tiff_createfolder
+from lls_dd.utils import write_tiff_createfolder
 
 # from scipy.ndimage.filters import gaussian_filter
 # note: deconvolution functions will be imported according to chosen backend later
@@ -402,17 +402,17 @@ class ExperimentProcessor(object):
         if self.do_deconv:
             # import selected backend
             if self.deconv_backend == "gputools_rewrite":
-                from .deconv_gputools_rewrite import (
+                from lls_dd.deconv_gputools_rewrite import (
                     init_rl_deconvolver,
                     get_deconv_function,
                 )
             elif self.deconv_backend == "gputools":
-                from .deconvolution_gputools import (
+                from lls_dd.deconvolution_gputools import (
                     init_rl_deconvolver,
                     get_deconv_function,
                 )
             elif self.deconv_backend == "flowdec":
-                from .deconvolution import init_rl_deconvolver, get_deconv_function
+                from lls_dd.deconvolution import init_rl_deconvolver, get_deconv_function
             else:
                 warnings.warn(f"unknown deconvolution backend {self.deconv_backend}")
                 exit(-1)

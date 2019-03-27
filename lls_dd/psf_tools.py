@@ -7,7 +7,7 @@ import warnings
 import pathlib
 import tifffile
 import numpy as np
-from typing import Tuple, Union, Optional, Iterable
+from typing import Tuple, Union, Optional, Iterable, Collection
 
 from .transforms import scale_pixel_z, shift_centre, unshift_centre, deskew_mat
 from .transform_helpers import calc_deskew_factor
@@ -64,8 +64,8 @@ def psf_background_subtraction(psf: np.ndarray, bgval: Optional[float]=None) -> 
 
 def psf_rescale_centre_skew_pad(psf: np.ndarray,
                                 dz_ratio_galvo_stage: float,
-                                centre: Iterable[float],
-                                output_shape: Iterable[int],
+                                centre: Collection[float],
+                                output_shape: Collection[int],
                                 deskewfactor: Optional[float] = None,
                                 interpolation: int = 3) -> Tuple[np.ndarray, np.ndarray]:
     """
@@ -114,7 +114,7 @@ def psf_normalize_intensity(psf: np.ndarray) -> np.ndarray:
 
 
 def generate_psf(psffile: Union[pathlib.Path, str],
-                 output_shape: Iterable[int],
+                 output_shape: Collection[int],
                  dz_stage: float,
                  dz_galvo: float,
                  xypixelsize: float,

@@ -3,8 +3,8 @@ import re
 import pandas as pd
 from natsort import natsorted
 from typing import Union, List, Any
-from .extract_metadata import extract_lls_metadata
-from .settings import read_fixed_settings
+from lls_dd.extract_metadata import extract_lls_metadata
+from lls_dd.settings import read_fixed_settings
 
 
 class Experimentfolder(object):
@@ -82,7 +82,7 @@ class Experimentfolder(object):
         self._apply_fixed_settings()
 
     def find_PSFs(self) -> pd.DataFrame:
-        """ finds and parses file names of PSF
+        """ finds and parses file names of PSFs
         """
         files = (self.folder / "PSF").rglob("*.tif")
         
@@ -91,9 +91,14 @@ class Experimentfolder(object):
         # a regular expression
 
         # TODO: what happens if unexpected tiff files are present?
-        matchdict = [
-            {**self.regex_PSF.match(str(f)).groupdict(), **{"file": str(f)}} for f in files
-        ]  
+        #matchdict = [
+        #    {**self.regex_PSF.match(str(f)).groupdict(), **{"file": str(f)}} for f in files
+        #]
+        matchdict = []
+        for f in files:
+            match =  self.regex_PSF.match(str(f))
+            if match:
+                matchdict.append({**match.groupdict(),  **{"file": str(f)}})
         df = pd.DataFrame(matchdict)
         df["name"] = df.file.apply(lambda x: pathlib.Path(x).name)
         return df
@@ -117,14 +122,10 @@ class Experimentfolder(object):
         for sf in stackfolders:
             stackname = sf.name
             stackfiles = list(sf.glob("*.tif"))
-            
-            matched_stacks += [
-                {
-                    **self.regex_Stackfiles.match(str(f)).groupdict(),
-                    **{"file": str(f), "stack_name": stackname},
-                }  
-                for f in stackfiles
-            ]
+            for f in stackfiles:
+                match = self.regex_Stackfiles.match(str(f))
+                if match:
+                    matched_stacks += [{**match.groupdict(),**{"file": str(f), "stack_name": stackname}}]
         # TODO: (flagged for removal) matched_stacks = natsorted(matched_stacks)
         return pd.DataFrame(matched_stacks)
 

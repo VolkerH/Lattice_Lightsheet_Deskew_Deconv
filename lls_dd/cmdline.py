@@ -2,7 +2,7 @@ from lls_dd import Experimentfolder, ExperimentProcessor
 import os
 import pathlib
 import click
-from .settings import create_fixed_settings
+from lls_dd.settings import create_fixed_settings
 
 
 class ProcessCmd(object):

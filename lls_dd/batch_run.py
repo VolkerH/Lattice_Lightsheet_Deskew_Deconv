@@ -1,5 +1,5 @@
-from .experiment_folder import Experimentfolder
-from .process_llsm_experiment import  *
+from lls_dd.experiment_folder import Experimentfolder
+from lls_dd.process_llsm_experiment import  *
 
 import os
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3' 

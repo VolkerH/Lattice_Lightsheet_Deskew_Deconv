@@ -3,14 +3,14 @@ import matplotlib.pyplot as plt
 import warnings
 from numpy.linalg import inv
 from functools import partial
-from typing import Union, Iterable, Callable, Optional
+from typing import Union, Iterable, Callable, Optional, Collection
 import logging
 
 logger = logging.getLogger("lls_dd")
 
 # from scipy.ndimage import affine_transform
-from .gputools_wrapper import affine_transform_gputools as affine_transform
-from .transforms import (
+from lls_dd.gputools_wrapper import affine_transform_gputools as affine_transform
+from lls_dd.transforms import (
     rot_around_y,
     deskew_mat,
     shift_centre,
@@ -289,7 +289,7 @@ def _twostep_affine(
 
 
 def get_rotate_to_coverslip_function(
-    orig_shape: Iterable[int],
+    orig_shape: Collection[int],
     dz_stage: float,
     xypixelsize: float,
     angle: float,
@@ -386,7 +386,7 @@ def get_rotate_to_coverslip_function(
 
 
 def get_rotate_function_all_in_one(
-    input_shape: Iterable[int],
+    input_shape: Collection[Union[int]],
     dz_stage: float = 0.299_401,
     xypixelsize: float = 0.1040,
     angle: float = 31.8,

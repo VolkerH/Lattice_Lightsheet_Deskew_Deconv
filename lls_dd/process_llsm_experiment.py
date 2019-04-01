@@ -126,6 +126,7 @@ class ExperimentProcessor(object):
         msg += ["Processor for experiment folder:", f"{self.ef.folder}"]
         msg += ["Output folder:"]
         msg += [f"{self.exp_outfolder}"]
+        msg += [""]
         msg += ["Processing options:"]
         msg += ["==================:"]
         pairs = self._description_variable_pairs()

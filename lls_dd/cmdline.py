@@ -29,6 +29,9 @@ pass_process_cmd = click.make_pass_decorator(ProcessCmd)
 
 
 # For commandline interface see http://click.palletsprojects.com/en/7.x/complex/
+# somehow the order of commands is bugging me, I think this is what is discussed
+# in this issue https://github.com/pallets/click/issues/108 with some mentioned
+# workarounds.
 @click.group()
 @click.option("--home", envvar="LLS_DD_HOME", default="~/.lls_dd")
 @click.option("--debug/--no-debug", default=False, envvar="LLS_DD_DEBUG")
@@ -47,16 +50,18 @@ def cli(ctx, exp_folder, home, debug, fixed_settings):
     "-M",
     "--MIP",
     is_flag=True,
-    default=True,
+    default=False,
     help="calculate maximum intensity projections",
 )
 @click.option(
-    "--deskew_rot",
+    "--rot",
     is_flag=True,
     default=False,
     help="rotate deskewed data to coverslip coordinates and save",
 )
-@click.option("--deskew", is_flag=True, default=False, help="save deskewed data")
+@click.option(
+    "--deskew", is_flag=True, default=False, help="save deskewed data"
+)
 @click.option(
     "-b",
     "--backend",
@@ -71,16 +76,16 @@ def cli(ctx, exp_folder, home, debug, fixed_settings):
 )
 @click.option(
     "-r",
-    "--decon_rot",
+    "--decon-rot",
     is_flag=True,
-    default=True,
+    default=False,
     help="if  deconvolution was chosen, rotate deconvolved "
     "and deskewed data to coverslip coordinates"
     " and save.",
 )
 @click.option(
     "-s",
-    "--decon_deskew",
+    "--decon-deskew",
     is_flag=True,
     default=False,
     help="if  deconvolution was chosen, rotate deconvolved "
@@ -130,7 +135,7 @@ def process(
 ):
     """experiment folder to process (required) output folder (optional) Otherwise same as input"""
 
-    ep = ExperimentProcessor(processcmd.ef, out_folder)
+    ep = ExperimentProcessor(processcmd.ef, exp_outfolder=out_folder)
     ep.do_MIP = mip
     ep.do_deskew = deskew
     ep.do_rotate = deskew_rot
@@ -139,7 +144,7 @@ def process(
     ep.do_deconv_rotate = decon_rot
     ep.skip_existing = skip_existing
     ep.deconv_n_iter = iterations
-    ep.lzw = lzw
+    #ep.lzw = lzw
     ep.MIP_method = mstyle
     ep.deconv_backend = backend
 

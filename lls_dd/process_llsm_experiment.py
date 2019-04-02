@@ -7,6 +7,7 @@ import numpy as np
 import os
 from typing import Iterable, Callable, Optional, Union, Any, Dict, DefaultDict
 from collections import defaultdict
+from multiprocessing import Pool, Lock
 from lls_dd.experiment_folder import Experimentfolder
 from lls_dd.psf_tools import generate_psf
 from lls_dd.transform_helpers import (
@@ -23,7 +24,7 @@ from lls_dd.utils import write_tiff_createfolder
 # tifffile produces too many warnings for the Labview-generated tiffs. Silence it:
 logging.getLogger("tifffile").setLevel(logging.ERROR)
 logger = logging.getLogger("lls_dd")
-logger.setLevel(logging.ERROR) # TODO: combine with verbose in ExperimentProcessor ?
+logger.setLevel(logging.DEBUG)  # TODO: combine with verbose in ExperimentProcessor ?
 
 
 # TODO: change terminology: stacks -> timeseries ?
@@ -56,7 +57,7 @@ class ExperimentProcessor(object):
             subfolders of the original Experimentfolder)
         
         """
-      
+
         self.ef: Experimentfolder = ef
 
         self.skip_files_regex: Optional[Iterable[str]] = skip_files_regex
@@ -203,7 +204,7 @@ class ExperimentProcessor(object):
         pathlib.Path
             PSF filename
         """
-        
+
         return (
             self.exp_outfolder
             / "PSF_Processed"
@@ -212,8 +213,11 @@ class ExperimentProcessor(object):
         )
 
     def create_MIP(
-        self, vol: np.array, outfile: pathlib.Path, write_func: Callable = write_tiff_createfolder
-    ):  
+        self,
+        vol: np.array,
+        outfile: pathlib.Path,
+        write_func: Callable = write_tiff_createfolder,
+    ):
         """creates an image file with a maximum intensity projection of outfile
         
         Parameters
@@ -250,6 +254,7 @@ class ExperimentProcessor(object):
 
     def process_file(
         self,
+        lock,
         infile: pathlib.Path,
         deskew_func: Optional[Callable] = None,
         rotate_func: Optional[Callable] = None,
@@ -275,6 +280,7 @@ class ExperimentProcessor(object):
             function that handles writing of the images        
         """
 
+        logger.debug(f"in process {os.getpid()}")
         outfiles = self.generate_outputnames(infile)
         # Do we have to do anything? Return otherwise.
         checks = [False, False, False, False]
@@ -287,8 +293,8 @@ class ExperimentProcessor(object):
         if all(checks):
             if self.verbose:
                 warnings.warn(
-                    f"nothing to do for {infile}. All outputs already exist. '\
-                                 Disable skip_existing to overwrite"
+                    f"nothing to do for {infile}. All outputs already exist. "\
+                                 "Disable skip_existing to overwrite"
                 )
             return
 
@@ -300,13 +306,15 @@ class ExperimentProcessor(object):
         )  # TODO see issue https://github.com/VolkerH/Lattice_Lightsheet_Deskew_Deconv/issues/13
         # vol_raw = np.clip(vol_raw, a_min=0, a_max=None).astype(np.uint16)  # in-place clipping of negative values
 
-        # The following case handling is ugly 
+        # The following case handling is ugly
         # (and got even uglier due to type checking (assert statements)
         # and due to use of multi-step affine transform which requires us
         # to deskew and keep intermediate result for rotations)
         if (self.do_deskew and not checks[0]) or (self.do_rotate and not checks[1]):
-            assert(deskew_func is not None)
+            assert deskew_func is not None
+            lock.acquire()
             deskewed = deskew_func(vol_raw)
+            lock.release()
             if self.do_deskew and not checks[0]:
                 write_func(outfiles["deskew"], deskewed.astype(self.output_dtype))
                 if self.do_MIP:
@@ -315,8 +323,10 @@ class ExperimentProcessor(object):
                     )
             # TODO write settings/metadata file to subfolder
         if self.do_rotate and not checks[1]:
-            assert(rotate_func is not None)
+            assert rotate_func is not None
+            lock.acquire()
             rotated = rotate_func(deskewed)
+            lock.release()
             write_func(outfiles["rotate"], rotated.astype(self.output_dtype))
             if self.do_MIP:
                 self.create_MIP(
@@ -324,15 +334,25 @@ class ExperimentProcessor(object):
                 )
             # write settings/metadata file to subfolder
         if self.do_deconv:
-            assert(deconv_func is not None)
+            assert deconv_func is not None
+            lock.acquire()
             deconv_raw = deconv_func(vol_raw)
+            lock.release()
             # TODO: write deconv settings
-            if self.do_deconv_deskew and not checks[2] or self.do_deconv_rotate and not checks[3]:
-                assert(deskew_func is not None)
+            if (
+                self.do_deconv_deskew
+                and not checks[2]
+                or self.do_deconv_rotate
+                and not checks[3]
+            ):
+                assert deskew_func is not None
+                lock.acquire()
                 deconv_deskewed = deskew_func(deconv_raw)
+                lock.release()
                 if self.do_deconv_deskew:
                     write_func(
-                        outfiles["deconv/deskew"], deconv_deskewed.astype(self.output_dtype)
+                        outfiles["deconv/deskew"],
+                        deconv_deskewed.astype(self.output_dtype),
                     )
                     if self.do_MIP:
                         self.create_MIP(
@@ -340,8 +360,10 @@ class ExperimentProcessor(object):
                             outfiles["deconv/deskew/MIP"],
                         )
             if self.do_deconv_rotate and not checks[3]:
-                assert(rotate_func is not None)
+                assert rotate_func is not None
+                lock.acquire()
                 deconv_rotated = rotate_func(deconv_deskewed)
+                lock.release()
                 write_func(
                     outfiles["deconv/rotate"], deconv_rotated.astype(self.output_dtype)
                 )
@@ -393,7 +415,9 @@ class ExperimentProcessor(object):
         deskew_func = get_deskew_function(tmp_vol.shape, dz_stage, xypixelsize, angle)
         if self.verbose:
             print("Generating rotate function")
-        rotate_func = get_rotate_to_coverslip_function(tmp_vol.shape, dz_stage, xypixelsize, angle)
+        rotate_func = get_rotate_to_coverslip_function(
+            tmp_vol.shape, dz_stage, xypixelsize, angle
+        )
 
         processed_psfs = {}
         deconv_functions: DefaultDict[str, Union[None, Callable]] = defaultdict(
@@ -412,7 +436,10 @@ class ExperimentProcessor(object):
                     get_deconv_function,
                 )
             elif self.deconv_backend == "flowdec":
-                from lls_dd.deconvolution import init_rl_deconvolver, get_deconv_function
+                from lls_dd.deconvolution import (
+                    init_rl_deconvolver,
+                    get_deconv_function,
+                )
             else:
                 warnings.warn(f"unknown deconvolution backend {self.deconv_backend}")
                 exit(-1)
@@ -468,21 +495,26 @@ class ExperimentProcessor(object):
                 )
 
         # Start batch processing
-        for index, row in tqdm.tqdm(
-            subset_files.iterrows(), total=subset_files.shape[0]
-        ):
-            if self.verbose:
-                print(f"Processing {index}: {row.file}")
-            # TODO implement regex check for files to skip
+
+        
+        lock=Lock()
+        # throws an error ... must be moved to a top-level function (at least on windows) :(
+        # https://stackoverflow.com/questions/48046862/python-django-multiprocessing-error-attributeerror-cant-pickle-local-object
+        def process_indexrow(irow):
+            index, row = irow
             wavelength = row.wavelength
-            # what happens if I use a ThreadPoolExectutor/ProcessPoolExecutor here? How will they share
-            # the GPU resources.
             self.process_file(
+                lock,
                 pathlib.Path(row.file),
                 deskew_func,
                 rotate_func,
                 deconv_functions[wavelength],
             )
+
+        indexrowl = list(subset_files.iterrows())
+        with Pool(4) as p:
+            r = list(tqdm.tqdm(p.imap(process_indexrow, indexrowl), total=len(indexrowl)))
+
 
     def process_all(self):
         """Process all time series (stacks) in the Experimentfolder this ExperimentProcessor refers to

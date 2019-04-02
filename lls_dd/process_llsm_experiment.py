@@ -7,7 +7,8 @@ import numpy as np
 import os
 from typing import Iterable, Callable, Optional, Union, Any, Dict, DefaultDict
 from collections import defaultdict
-from multiprocessing import Pool, Lock
+from multiprocessing import Lock
+from pathos.multiprocessing import ProcessPool as Pool
 from lls_dd.experiment_folder import Experimentfolder
 from lls_dd.psf_tools import generate_psf
 from lls_dd.transform_helpers import (
@@ -17,6 +18,12 @@ from lls_dd.transform_helpers import (
     get_projection_montage,
 )
 from lls_dd.utils import write_tiff_createfolder
+
+# https://stackoverflow.com/questions/25557686/python-sharing-a-lock-between-processes
+def init(l):
+    global lock
+    lock = l
+
 
 # from scipy.ndimage.filters import gaussian_filter
 # note: deconvolution functions will be imported according to chosen backend later
@@ -254,7 +261,6 @@ class ExperimentProcessor(object):
 
     def process_file(
         self,
-        lock,
         infile: pathlib.Path,
         deskew_func: Optional[Callable] = None,
         rotate_func: Optional[Callable] = None,
@@ -312,9 +318,9 @@ class ExperimentProcessor(object):
         # to deskew and keep intermediate result for rotations)
         if (self.do_deskew and not checks[0]) or (self.do_rotate and not checks[1]):
             assert deskew_func is not None
-            lock.acquire()
+            #lock.acquire()
             deskewed = deskew_func(vol_raw)
-            lock.release()
+            #lock.release()
             if self.do_deskew and not checks[0]:
                 write_func(outfiles["deskew"], deskewed.astype(self.output_dtype))
                 if self.do_MIP:
@@ -324,9 +330,9 @@ class ExperimentProcessor(object):
             # TODO write settings/metadata file to subfolder
         if self.do_rotate and not checks[1]:
             assert rotate_func is not None
-            lock.acquire()
+            #lock.acquire()
             rotated = rotate_func(deskewed)
-            lock.release()
+            #lock.release()
             write_func(outfiles["rotate"], rotated.astype(self.output_dtype))
             if self.do_MIP:
                 self.create_MIP(
@@ -335,9 +341,9 @@ class ExperimentProcessor(object):
             # write settings/metadata file to subfolder
         if self.do_deconv:
             assert deconv_func is not None
-            lock.acquire()
+            #lock.acquire()
             deconv_raw = deconv_func(vol_raw)
-            lock.release()
+            #lock.release()
             # TODO: write deconv settings
             if (
                 self.do_deconv_deskew
@@ -346,9 +352,9 @@ class ExperimentProcessor(object):
                 and not checks[3]
             ):
                 assert deskew_func is not None
-                lock.acquire()
+                #lock.acquire()
                 deconv_deskewed = deskew_func(deconv_raw)
-                lock.release()
+                #lock.release()
                 if self.do_deconv_deskew:
                     write_func(
                         outfiles["deconv/deskew"],
@@ -361,9 +367,9 @@ class ExperimentProcessor(object):
                         )
             if self.do_deconv_rotate and not checks[3]:
                 assert rotate_func is not None
-                lock.acquire()
+                #lock.acquire()
                 deconv_rotated = rotate_func(deconv_deskewed)
-                lock.release()
+                #lock.release()
                 write_func(
                     outfiles["deconv/rotate"], deconv_rotated.astype(self.output_dtype)
                 )
@@ -497,18 +503,17 @@ class ExperimentProcessor(object):
         # Start batch processing
 
         
-        lock=Lock()
+        
         # throws an error ... must be moved to a top-level function (at least on windows) :(
         # https://stackoverflow.com/questions/48046862/python-django-multiprocessing-error-attributeerror-cant-pickle-local-object
         def process_indexrow(irow):
             index, row = irow
             wavelength = row.wavelength
             self.process_file(
-                lock,
                 pathlib.Path(row.file),
                 deskew_func,
                 rotate_func,
-                deconv_functions[wavelength],
+                None,
             )
 
         indexrowl = list(subset_files.iterrows())

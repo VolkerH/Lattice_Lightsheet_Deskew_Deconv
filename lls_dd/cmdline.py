@@ -121,8 +121,8 @@ def cli(ctx, exp_folder, home, debug, fixed_settings):
 def process(
     processcmd,
     out_folder,
+    rot,
     mip,
-    deskew_rot,
     deskew,
     backend,
     iterations,
@@ -138,7 +138,7 @@ def process(
     ep = ExperimentProcessor(processcmd.ef, exp_outfolder=out_folder)
     ep.do_MIP = mip
     ep.do_deskew = deskew
-    ep.do_rotate = deskew_rot
+    ep.do_rotate = rot
     ep.do_deconv = iterations > 0
     ep.do_deconv_deskew = decon_deskew
     ep.do_deconv_rotate = decon_rot

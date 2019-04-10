@@ -7,10 +7,8 @@ import numpy as np
 import os
 from typing import Iterable, Callable, Optional, Union, Any, Dict, DefaultDict
 from collections import defaultdict
-from multiprocessing import Lock
-from pathos.multiprocessing import ProcessPool as Pool
 from lls_dd.experiment_folder import Experimentfolder
-from lls_dd.psf_tools import generate_psf
+from lls_dd.psf_tools import generate_psf, psf_find_support_size
 from lls_dd.transform_helpers import (
     get_deskew_function,
     get_rotate_to_coverslip_function,
@@ -19,11 +17,6 @@ from lls_dd.transform_helpers import (
 )
 from lls_dd.utils import write_tiff_createfolder
 
-# https://stackoverflow.com/questions/25557686/python-sharing-a-lock-between-processes
-def init(l):
-    global lock
-    lock = l
-
 
 # from scipy.ndimage.filters import gaussian_filter
 # note: deconvolution functions will be imported according to chosen backend later
@@ -31,7 +24,7 @@ def init(l):
 # tifffile produces too many warnings for the Labview-generated tiffs. Silence it:
 logging.getLogger("tifffile").setLevel(logging.ERROR)
 logger = logging.getLogger("lls_dd")
-logger.setLevel(logging.DEBUG)  # TODO: combine with verbose in ExperimentProcessor ?
+logger.setLevel(logging.WARNING)  # TODO: combine with verbose in ExperimentProcessor ?
 
 
 # TODO: change terminology: stacks -> timeseries ?
@@ -107,6 +100,10 @@ class ExperimentProcessor(object):
 
         # general
         self.verbose: bool = False  # if True, prints diagnostic output
+
+        # backend-specific
+        self.flowdec_pad_mode: str = "2357" # other options would be "NONE" or "LOG2"
+        self.flowdec_add_PSF_pad: bool = True
 
     def _description_variable_pairs(self):
         return [
@@ -286,9 +283,8 @@ class ExperimentProcessor(object):
             function that handles writing of the images        
         """
 
-        logger.debug(f"in process {os.getpid()}")
         outfiles = self.generate_outputnames(infile)
-        # Do we have to do anything? Return otherwise.
+        # Check wether anything needs to be processed? Return otherwise.
         checks = [False, False, False, False]
         if self.skip_existing:
             checks = []
@@ -341,9 +337,7 @@ class ExperimentProcessor(object):
             # write settings/metadata file to subfolder
         if self.do_deconv:
             assert deconv_func is not None
-            #lock.acquire()
             deconv_raw = deconv_func(vol_raw)
-            #lock.release()
             # TODO: write deconv settings
             if (
                 self.do_deconv_deskew
@@ -352,9 +346,7 @@ class ExperimentProcessor(object):
                 and not checks[3]
             ):
                 assert deskew_func is not None
-                #lock.acquire()
                 deconv_deskewed = deskew_func(deconv_raw)
-                #lock.release()
                 if self.do_deconv_deskew:
                     write_func(
                         outfiles["deconv/deskew"],
@@ -367,9 +359,7 @@ class ExperimentProcessor(object):
                         )
             if self.do_deconv_rotate and not checks[3]:
                 assert rotate_func is not None
-                #lock.acquire()
                 deconv_rotated = rotate_func(deconv_deskewed)
-                #lock.release()
                 write_func(
                     outfiles["deconv/rotate"], deconv_rotated.astype(self.output_dtype)
                 )
@@ -449,13 +439,6 @@ class ExperimentProcessor(object):
             else:
                 warnings.warn(f"unknown deconvolution backend {self.deconv_backend}")
                 exit(-1)
-            # Prepare deconvolution:
-            # Here we initialize a single deconvolver that gets used
-            # for all deconvolutions.
-            # I have doubts whether this will work if several threads run in parallel,
-            # I assume a deconvolver will have to be initialized for each worker
-            # Therefore this may have to be moved into `get_deconv_func` (TODO)
-            deconvolver = init_rl_deconvolver()
 
             # Preprocess PSFs and create deconvolution functions
             wavelengths = (
@@ -496,29 +479,32 @@ class ExperimentProcessor(object):
                 write_func(
                     self.generate_PSF_name(wavelength), processed_psfs[wavelength]
                 )
-                deconv_functions[wavelength] = get_deconv_function(
-                    processed_psfs[wavelength], deconvolver, self.deconv_n_iter
-                )
 
+            # Prepare deconvolution:
+            # Here we initialize a single deconvolver that gets used
+            # for all subsequent deconvolutions.
+            pad_min = np.array([0, 0, 0])
+            if self.flowdec_add_PSF_pad:
+                support_sizes = [psf_find_support_size(p) for _, p in processed_psfs.items()]
+            pad_min = np.max(np.array(support_sizes), axis=0)
+            logger.debug(f"add pad_min of {pad_min}")
+            deconvolver = init_rl_deconvolver(pad_mode=self.flowdec_pad_mode, pad_min=pad_min)        
+            deconv_functions = {w: get_deconv_function(psf, deconvolver, self.deconv_n_iter) for w, psf in processed_psfs.items()}
+        
         # Start batch processing
-
-        
-        
-        # throws an error ... must be moved to a top-level function (at least on windows) :(
-        # https://stackoverflow.com/questions/48046862/python-django-multiprocessing-error-attributeerror-cant-pickle-local-object
-        def process_indexrow(irow):
-            index, row = irow
+        for index, row in tqdm.tqdm(
+            subset_files.iterrows(), total=subset_files.shape[0]
+        ):
+            if self.verbose:
+                print(f"Processing {index}: {row.file}")
+            # TODO implement regex check for files to skip
             wavelength = row.wavelength
             self.process_file(
                 pathlib.Path(row.file),
                 deskew_func,
                 rotate_func,
-                None,
+                deconv_functions[wavelength],
             )
-
-        indexrowl = list(subset_files.iterrows())
-        with Pool(4) as p:
-            r = list(tqdm.tqdm(p.imap(process_indexrow, indexrowl), total=len(indexrowl)))
 
 
     def process_all(self):

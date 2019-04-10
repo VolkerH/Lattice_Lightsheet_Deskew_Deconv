@@ -111,6 +111,28 @@ def psf_normalize_intensity(psf: np.ndarray) -> np.ndarray:
         return psf
 
 
+def psf_find_support_size(psf: np.ndarray, threshold_fraction: float = 0.03) -> np.array:
+    """returns the dimensions of the bounding volume where the PSF is above a fraction of the max intensity
+    
+    Parameters
+    ----------
+    psf : np.ndarray
+        input volume
+    threshold_fraction : float, optional
+        fraction of maximum intensity to uses as threshold (the default is 0.03)
+    
+    Returns
+    -------
+    np.array
+        extent of the bounding volume dimensions
+    """
+    maxval = np.max(psf)
+    mask = psf > maxval * threshold_fraction
+    locations = np.where(mask)
+    tmp = np.max(locations, axis=1) - np.min(locations, axis=1)
+    support_size = tmp + np.array([1, 1, 1]) # add one to avoid fencepost error
+    return support_size
+
 def generate_psf(psffile: Union[pathlib.Path, str],
                  output_shape: Collection[int],
                  dz_stage: float,

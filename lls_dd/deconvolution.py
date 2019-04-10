@@ -14,7 +14,7 @@ os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
 def init_rl_deconvolver():
     """initializes the tensorflow-based Richardson Lucy Deconvolver """
     return tfd_restoration.RichardsonLucyDeconvolver(
-        n_dims=3, start_mode="input"
+        n_dims=3, start_mode="input", pad_mode="2357"
     ).initialize()
 
 

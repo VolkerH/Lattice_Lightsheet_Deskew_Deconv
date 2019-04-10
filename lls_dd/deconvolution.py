@@ -6,15 +6,17 @@ import numpy as np
 import warnings
 from typing import Optional, Callable
 import os
+import logging
 
+logger = logging.getLogger("lls_dd")
 # suppress tensorflow diagnostic output
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
 
 
-def init_rl_deconvolver():
+def init_rl_deconvolver(**kwargs):
     """initializes the tensorflow-based Richardson Lucy Deconvolver """
     return tfd_restoration.RichardsonLucyDeconvolver(
-        n_dims=3, start_mode="input"
+        n_dims=3, start_mode="input", **kwargs 
     ).initialize()
 
 
@@ -48,17 +50,18 @@ def deconv_volume(
     np.ndarray
         deconvolved volume
     """
-    # TODO: this is a quick test whether tensorflow session configs can be used to limit the memory use
-    # if it works, add an option to pass in a tensorflow session config.
-    gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.85)
+    # TODO: test different gpu options and remove comments
+    #gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.85)
+    gpu_options = tf.GPUOptions(allow_growth = True)
     config = tf.ConfigProto(log_device_placement=False, gpu_options=gpu_options)
-    config.gpu_options.allow_growth = True
+    #config.gpu_options.allow_growth = True
 
     aq = fd_data.Acquisition(data=vol, kernel=psf)
     if observer is not None:
         warnings.warn("Observer function for iteration not yet implemented.")
-    return deconvolver.run(aq, niter=n_iter, session_config=config).data
-
+    result = deconvolver.run(aq, niter=n_iter, session_config=config)
+    logger.debug(f"flowdec info: {result.info}")
+    return result.data
 
 def get_deconv_function(
     psf: np.ndarray, deconvolver: tfd_restoration.RichardsonLucyDeconvolver, n_iter: int

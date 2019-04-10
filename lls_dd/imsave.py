@@ -50,6 +50,7 @@ THE SOFTWARE OR THE USE OR OTHER DEALINGS WITH THE SOFTWARE.
 
 logger = logging.getLogger('lls_dd')
 
+
 def reorderstack(arr: np.ndarray, inorder: str = "zyx", outorder: str = "tzcyx"):
     """rearrange order of array, used when resaving a file for Fiji."""
     inorder = inorder.lower()
@@ -64,7 +65,9 @@ def reorderstack(arr: np.ndarray, inorder: str = "zyx", outorder: str = "tzcyx")
     arr = np.transpose(arr, [inorder.find(n) for n in outorder])
     return arr
 
-
+# TODO: I copied this in from Talley's LLSPy with the intention of writing the scale,
+# however, I don't like the stack reordering introducing additional length 1 dimensions
+# as I can't open a whole folder of 5 dim .tif files in spimage.
 def imsave(
     outpath: str,
     arr: np.array,

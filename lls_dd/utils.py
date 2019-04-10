@@ -3,14 +3,10 @@ import warnings
 import logging
 import numpy as np
 from typing import Union
-
+import tifffile
 from lls_dd.imsave import imsave
 
 logging.getLogger("tifffile").setLevel(logging.ERROR)
-
-# write in a separate thread
-# https://www.geeksforgeeks.org/writing-files-background-python/
-
 
 def write_tiff_createfolder(
     path: Union[str, pathlib.Path], nparray: np.ndarray, **opt_kwargs
@@ -28,4 +24,5 @@ def write_tiff_createfolder(
     path.parent.mkdir(parents=True, exist_ok=True)
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
-        imsave(str(path), nparray, **opt_kwargs)
+        tifffile.imsave(str(path), nparray)
+        #imsave(str(path), nparray, **opt_kwargs) # 

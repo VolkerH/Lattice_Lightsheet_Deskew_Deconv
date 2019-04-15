@@ -102,7 +102,7 @@ class ExperimentProcessor(object):
         self.verbose: bool = False  # if True, prints diagnostic output
 
         # backend-specific
-        self.flowdec_pad_mode: str = "2357" # other options would be "NONE" or "LOG2"
+        self.flowdec_pad_mode: str = "2357"  # other options would be "NONE" or "LOG2"
         self.flowdec_add_PSF_pad: bool = True
 
     def _description_variable_pairs(self):
@@ -296,8 +296,8 @@ class ExperimentProcessor(object):
         if all(checks):
             if self.verbose:
                 warnings.warn(
-                    f"nothing to do for {infile}. All outputs already exist. "\
-                                 "Disable skip_existing to overwrite"
+                    f"nothing to do for {infile}. All outputs already exist. "
+                    "Disable skip_existing to overwrite"
                 )
             return
 
@@ -315,9 +315,9 @@ class ExperimentProcessor(object):
         # to deskew and keep intermediate result for rotations)
         if (self.do_deskew and not checks[0]) or (self.do_rotate and not checks[1]):
             assert deskew_func is not None
-            #lock.acquire()
+            # lock.acquire()
             deskewed = deskew_func(vol_raw)
-            #lock.release()
+            # lock.release()
             if self.do_deskew and not checks[0]:
                 write_func(outfiles["deskew"], deskewed.astype(self.output_dtype))
                 if self.do_MIP:
@@ -327,9 +327,9 @@ class ExperimentProcessor(object):
             # TODO write settings/metadata file to subfolder
         if self.do_rotate and not checks[1]:
             assert rotate_func is not None
-            #lock.acquire()
+            # lock.acquire()
             rotated = rotate_func(deskewed)
-            #lock.release()
+            # lock.release()
             write_func(outfiles["rotate"], rotated.astype(self.output_dtype))
             if self.do_MIP:
                 self.create_MIP(
@@ -486,12 +486,22 @@ class ExperimentProcessor(object):
             # for all subsequent deconvolutions.
             pad_min = np.array([0, 0, 0])
             if self.flowdec_add_PSF_pad:
-                support_sizes = [psf_find_support_size(p) for _, p in processed_psfs.items()]
+                support_sizes = [
+                    psf_find_support_size(p) for _, p in processed_psfs.items()
+                ]
             pad_min = np.max(np.array(support_sizes), axis=0)
             logger.debug(f"add pad_min of {pad_min}")
-            deconvolver = init_rl_deconvolver(pad_mode=self.flowdec_pad_mode, pad_min=pad_min)        
-            deconv_functions = {w: get_deconv_function(psf, deconvolver, self.deconv_n_iter) for w, psf in processed_psfs.items()}
-        
+            deconvolver = init_rl_deconvolver(
+                pad_mode=self.flowdec_pad_mode, pad_min=pad_min
+            )
+            deconv_functions = defaultdict(
+                lambda: None,
+                {
+                    w: get_deconv_function(psf, deconvolver, self.deconv_n_iter)
+                    for w, psf in processed_psfs.items()
+                },
+            )
+
         # Start batch processing
         for index, row in tqdm.tqdm(
             subset_files.iterrows(), total=subset_files.shape[0]
@@ -506,7 +516,6 @@ class ExperimentProcessor(object):
                 rotate_func,
                 deconv_functions[wavelength],
             )
-
 
     def process_all(self):
         """Process all time series (stacks) in the Experimentfolder this ExperimentProcessor refers to

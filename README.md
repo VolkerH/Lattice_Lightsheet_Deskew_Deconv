@@ -1,4 +1,4 @@
-# `lls_dd` **L**attice **L**ight**s**heet **D**eskew and **D**econvolution with GPU acceleration in Python
+# `lls_dd` - `l`attice `l`ight`s`heet `d`eskew and `d`econvolution with GPU acceleration in Python
 
 ## About
 

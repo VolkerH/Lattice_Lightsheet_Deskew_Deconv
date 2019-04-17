@@ -22,7 +22,7 @@ The repository encompasses:
 
 Run `lls_dd --help` to get an overview of the command line arguments and the main processing commands:
 
-```
+```console
 λ lls_dd --help
 Usage: lls_dd [OPTIONS] EXP_FOLDER COMMAND [ARGS]...
 
@@ -46,7 +46,7 @@ Commands:
 
 You can see the arguments for `process` by passing `--help` after the experiment folder and process command:
 
-```
+```console
 λ lls_dd ..\..\..\Data\Experiment_testing_stacks\ process --help
 Usage: lls_dd process [OPTIONS] [OUT_FOLDER]
 
@@ -97,13 +97,33 @@ The following notebooks illustrate the basic algorithms used and provide example
 
 ## Installation
 
-### create a `conda` environment for lls_dd
+### Option 1: `conda` + `pip` 
 
+Install anaconda or miniconda.
 
-### `pyopencl` dependency
+Create a `conda` environment `llsdd`:
 
-For GPU accelerated deskew/rotate you need install OpenCL drivers for your GPU.
-Getting `pyopencl` (one of the required python dependencies) to work can be tricky. When installing from `conda-forge` it seems to be somewhat of a lottery whether the installed package works. On some windows machines where I did not manage to obtain a working `pyopencl` from `conda-forge` I found that `pip`-installing a [binary wheel from Chris Gohlke](https://www.lfd.uci.edu/~gohlke/pythonlibs/#pyopencl) into my conda environment did the trick.
+```console
+conda env create -f environment_{...}_.yml
+```
+
+where `{environment_{...}_.yml}` stands for one of the two provided environment files. Choose
+ `environment-no-CUDA.yml` if you do not have a CUDA-compatible graphics card. Choose 
+ `evironment-CUDA.yml` if you do have a CUDA compatible gpu. The latter will install `tensorflow-gpu` which will be essential for fast deconvolution.
+
+Activate the new environment with `conda activate llsdd`.
+
+Download and unzip or `git clone` this repository.
+
+Change to the top-level of the cloned or unzipped repository and type `pip install .`. If this completes successfully you should now be able to use the `lls_dd` command line utility.
+
+If the installation fails for `pyopencl`, see 
+the paragraph on `pyopencl` in section Troubleshooting.
+
+### Option 2: Docker container
+
+TODO (the Docker container has not been built yet):
+If you have `nvidia-docker` you can run `lls_dd` in a pre-built Docker container. 
 
 ## Troubleshooting
 
@@ -116,6 +136,11 @@ If you run out of GPU memory there are several troubleshooting steps you can tak
 
 * it the input arrays are much too large, you may have to leave out deconvolution and run deskew and/or rotate only. A workaround for deconvolving in chunks is [outlined in this notebook](https://github.com/hammerlab/flowdec/blob/master/python/examples/notebooks/Tile-by-tile%20deconvolution%20using%20dask.ipynb) but is not yet implemented in `lls_dd`.
 * if the input volume is only a little too large, try running deconvolution with `--decon-deskew` only (the `--decon-rot` option requires more GPU memory for the affine transform).
+
+### `pyopencl` installation and errors 
+
+For GPU accelerated deskew/rotate you need install OpenCL drivers for your GPU.
+Getting `pyopencl` (one of the required python dependencies) to work can be tricky. When installing from `conda-forge` it seems to be somewhat of a lottery whether the installed package works. On some windows machines where I did not manage to obtain a working `pyopencl` from `conda-forge` I found that uninstalling the conda-installed `pyopencl` and then  `pip`-installing a [binary wheel from Chris Gohlke](https://www.lfd.uci.edu/~gohlke/pythonlibs/#pyopencl) into my conda environment did the trick.
 
 ## Roadmap
 

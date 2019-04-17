@@ -1,6 +1,6 @@
 # `lls_dd` 
 
-## `l`attice `l`ight`s`heet `d`eskew and `d`econvolution with GPU acceleration in Python
+## `l`attice `l`ight`s`heet `d`eskew and `d`econvolution with GPU-accelerated Python
 
 ## About
 
@@ -160,5 +160,7 @@ Currently `lls_dd` is mainly leveraging on two libraries that handle the heavy l
 
 ## License
 
-The code in this repository falls under a BSD-3 license, with the exceptions of parts from other projects (which will
+This library was written by Volker Hilsenstein at Monash Micro Imaging.
+
+The code in this repository is distributed under a BSD-3 license, with the exceptions of parts from other projects (which will
 have their respective licenses reproduced in the source files.)

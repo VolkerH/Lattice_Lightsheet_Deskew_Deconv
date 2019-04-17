@@ -427,9 +427,20 @@ class ExperimentProcessor(object):
                 print(f"Processing {index}: {row.file}")
             # TODO implement regex check for files to skip
             wavelength = row.wavelength
-            self.process_file(
-                pathlib.Path(row.file), deskew_func, rotate_func, deconv_functions[wavelength]
-            )
+            try:
+                self.process_file(
+                    pathlib.Path(row.file), deskew_func, rotate_func, deconv_functions[wavelength]
+                )
+            except:
+                # catch anything until I can narrow down the exact exceptions
+                # I need to catch
+                # see https://github.com/VolkerH/Lattice_Lightsheet_Deskew_Deconv/issues/36
+                # this can probably not catch the core dump when the cuda allocator fails
+                warnings.warn(
+                    f"Caught exception {exc_info()[0]} while processing {row.file}"\
+                    f"  Stack might be too large for GPU mem"\
+                    f"or one of the input tif files might be corrupted.")
+                raise RuntimeError
 
     def process_all(self):
         """Process all time series (stacks) in the Experimentfolder this ExperimentProcessor refers to
@@ -437,14 +448,6 @@ class ExperimentProcessor(object):
         for stack in tqdm.tqdm(self.ef.stacks):
             try:
                 self.process_stack_subfolder(stack)
-            except:
-                # see https://github.com/VolkerH/Lattice_Lightsheet_Deskew_Deconv/issues/36
-                # this should catch MemoryError exceptions from gputools/pyopencl
-                # and some tensorflow errors but it cannot
-                # catch the core dump when the cuda allocator fails
-                warnings.warn(
-                    f"Caught exception {exc_info()[0]}. Stack might be too large for GPU mem"\
-                    f"or one of the input tif files might be corrupted."\
-                    f"Skipping remainder of this folder."
-                )
+            except RuntimeError:
+                warnings.warn("Caught runtime error. Skipping remainder of this folder.")
                 pass

@@ -10,13 +10,7 @@ logger = logging.getLogger("lls_dd")
 
 # from scipy.ndimage import affine_transform
 from lls_dd.gputools_wrapper import affine_transform_gputools as affine_transform
-from lls_dd.transforms import (
-    rot_around_y,
-    deskew_mat,
-    shift_centre,
-    unshift_centre,
-    scale_pixel_z,
-)
+from lls_dd.transforms import rot_around_y, deskew_mat, shift_centre, unshift_centre, scale_pixel_z
 
 
 def ceil_to_mulitple(x, base: int = 4):
@@ -41,9 +35,7 @@ def ceil_to_mulitple(x, base: int = 4):
 
 
 def get_transformed_corners(
-    aff: np.ndarray,
-    vol_or_shape: Union[np.ndarray, Iterable[float]],
-    zeroindex: bool = True,
+    aff: np.ndarray, vol_or_shape: Union[np.ndarray, Iterable[float]], zeroindex: bool = True
 ):
     """ Input
     aff: an affine transformation matrix 
@@ -86,9 +78,7 @@ def get_transformed_corners(
     return corner_array
 
 
-def get_output_dimensions(
-    aff: np.ndarray, vol_or_shape: Union[np.ndarray, Iterable[float]]
-):
+def get_output_dimensions(aff: np.ndarray, vol_or_shape: Union[np.ndarray, Iterable[float]]):
     """ given an 4x4 affine transformation matrix aff and 
     a 3d input volume (numpy array) or volumen shape (iterable with 3 elements)
     this function returns the output dimensions required for the array after the
@@ -102,9 +92,7 @@ def get_output_dimensions(
     return dims[:3].astype(np.int)
 
 
-def get_projections(
-    in_array: np.ndarray, fun: Callable = np.max
-) -> Iterable[np.ndarray]:
+def get_projections(in_array: np.ndarray, fun: Callable = np.max) -> Iterable[np.ndarray]:
     """given an array, projects along each axis using the function fun (defaults to np.max).
     
     Parameters
@@ -136,9 +124,7 @@ def plot_all(imlist: Iterable[np.ndarray], backend: str = "matplotlib"):
         warnings.warn(f"backend {backend} not yet implemented")
 
 
-def imprint_coordinate_system(
-    volume, origin=(0, 0, 0), l=100, w=5, vals=(6000, 10000, 14000)
-):
+def imprint_coordinate_system(volume, origin=(0, 0, 0), l=100, w=5, vals=(6000, 10000, 14000)):
     """ imprints coordinate system axes in a volume at origin
     axes imprints have length l and width w and intensity values in val.
     This can be quite helpful for debugging affine transforms to see how the coordinate axes are mapped."""
@@ -202,11 +188,7 @@ def calc_deskew_factor(dz_stage: float, xypixelsize: float, angle: float) -> flo
 
 
 def get_deskew_function(
-    input_shape: Iterable[int],
-    dz_stage: float,
-    xypixelsize: float,
-    angle: float,
-    interp_order: int = 1,
+    input_shape: Iterable[int], dz_stage: float, xypixelsize: float, angle: float, interp_order: int = 1
 ) -> Callable:
 
     """Generate a deskew function for processing raw volumes with the provided parameters
@@ -244,10 +226,7 @@ def get_deskew_function(
     logger.debug(f"deskew function: skew matrix: {skew}")
     logger.debug(f"deskew function: output shape: {output_shape}")
     deskew_func = partial(
-        affine_transform,
-        matrix=inv(skew),
-        output_shape=output_shape,
-        order=interp_order,
+        affine_transform, matrix=inv(skew), output_shape=output_shape, order=interp_order
     )
     return deskew_func
 
@@ -258,7 +237,7 @@ def _twostep_affine(
     outshape1: Iterable[int],
     mat2: np.array,
     outshape2: Iterable[int],
-    order: int= 1,
+    order: int = 1,
 ) -> np.array:
     """performs two affine transforms in succession
     
@@ -284,16 +263,12 @@ def _twostep_affine(
     """
     # TODO: deal with "mode" ... maybe pass varargs
     step1 = affine_transform(vol, mat1, output_shape=outshape1, order=order)
-    step2 =  affine_transform(step1, mat2, output_shape=outshape2, order=order)
+    step2 = affine_transform(step1, mat2, output_shape=outshape2, order=order)
     return step2
 
 
 def get_rotate_to_coverslip_function(
-    orig_shape: Collection[int],
-    dz_stage: float,
-    xypixelsize: float,
-    angle: float,
-    interp_order: int = 1,
+    orig_shape: Collection[int], dz_stage: float, xypixelsize: float, angle: float, interp_order: int = 1
 ) -> Callable:
     """Generate a function that rotates a deskewed volume to coverslip coordinates
     
@@ -338,7 +313,6 @@ def get_rotate_to_coverslip_function(
 
     # shift volume such that centre is at (0,0,0) for rotations
 
-    
     # Build deskew matrix
     skew = deskew_mat(deskewfactor)
     shape_after_skew = get_output_dimensions(skew, orig_shape)
@@ -349,13 +323,12 @@ def get_rotate_to_coverslip_function(
     # rotation matrix
     rot = rot_around_y(-angle)
 
-    
-    # determine final output shape for an all-in-one (deskew/scale/rot) transform 
+    # determine final output shape for an all-in-one (deskew/scale/rot) transform
     # (which is not actually applied)
     shift = shift_centre(orig_shape)
     combined = rot @ scale @ skew @ shift
     shape_final = get_output_dimensions(combined, orig_shape)
-    # determine shape after scale/rot on deskewed, this is larger than final due to 
+    # determine shape after scale/rot on deskewed, this is larger than final due to
     # fill pixels
     shape_scalerot = get_output_dimensions(rot @ shift_scaled @ scale, shape_after_skew)
 
@@ -364,10 +337,10 @@ def get_rotate_to_coverslip_function(
     logger.debug(f"shape_scalerot {shape_scalerot}")
     logger.debug(f"shape_final {shape_final}")
     _tmp = unshift_centre(shape_final)
-    diff = (shape_scalerot[0] - shape_final[0])/2
+    diff = (shape_scalerot[0] - shape_final[0]) / 2
     logger.debug(f"diff {diff}")
-    #_tmp[0,3] -= diff
-    unshift_final = _tmp 
+    # _tmp[0,3] -= diff
+    unshift_final = _tmp
     rotshift = unshift_final @ rot @ shift_scaled
 
     logger.debug(f"rotate to coverslip: scale matrix: {scale}")
@@ -380,7 +353,7 @@ def get_rotate_to_coverslip_function(
         outshape1=shape_after_scale,
         mat2=inv(rotshift),
         outshape2=shape_final,
-        order=interp_order
+        order=interp_order,
     )
     return rotate_func
 
@@ -435,9 +408,6 @@ def get_rotate_function_all_in_one(
     logger.debug(f"rotate function: all in one: {all_in_one}")
     logger.debug(f"rotate function: all in one: {inv(all_in_one)}")
     rotate_func = partial(
-        affine_transform,
-        matrix=inv(all_in_one),
-        output_shape=output_shape,
-        order=interp_order,
+        affine_transform, matrix=inv(all_in_one), output_shape=output_shape, order=interp_order
     )
     return rotate_func

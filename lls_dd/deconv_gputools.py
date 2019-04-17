@@ -12,9 +12,7 @@ from typing import Optional, Callable
 import warnings
 import gputools
 
-_multiply_inplace = OCLElementwiseKernel(
-    "float *a, float * b", "a[i] = a[i] * b[i]", "mult_inplace"
-)
+_multiply_inplace = OCLElementwiseKernel("float *a, float * b", "a[i] = a[i] * b[i]", "mult_inplace")
 
 _divide_inplace = OCLElementwiseKernel(
     "float *a, float * b", "b[i] = a[i]*b[i]/(b[i]*b[i]+0.001f)", "divide_inplace"
@@ -29,9 +27,7 @@ _complex_multiply_inplace = OCLElementwiseKernel(
 )
 
 _complex_divide = OCLElementwiseKernel(
-    "cfloat_t *a, cfloat_t * b,cfloat_t * res",
-    "res[i] = cfloat_divide(b[i],a[i])",
-    "div",
+    "cfloat_t *a, cfloat_t * b,cfloat_t * res", "res[i] = cfloat_divide(b[i],a[i])", "div"
 )
 
 _complex_divide_inplace = OCLElementwiseKernel(
@@ -78,19 +74,11 @@ class Deconvolver_RL_gputools(object):
 
         for i in range(self.n_iter):
             # logger.info("Iteration: {}".format(i))
-            fft_convolve(
-                u_g, self.psf_g, plan=self.plan, res_g=self.tmp_g, kernel_is_fft=True
-            )
+            fft_convolve(u_g, self.psf_g, plan=self.plan, res_g=self.tmp_g, kernel_is_fft=True)
 
         _complex_divide_inplace(y_g, self.tmp_g)
 
-        fft_convolve(
-            self.tmp_g,
-            self.psfflip_f_g,
-            plan=self.plan,
-            inplace=True,
-            kernel_is_fft=True,
-        )
+        fft_convolve(self.tmp_g, self.psfflip_f_g, plan=self.plan, inplace=True, kernel_is_fft=True)
 
         _complex_multiply_inplace(u_g, self.tmp_g)
 

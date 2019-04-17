@@ -35,9 +35,7 @@ pass_process_cmd = click.make_pass_decorator(ProcessCmd)
 @click.group()
 @click.option("--home", envvar="LLS_DD_HOME", default="~/.lls_dd")
 @click.option("--debug/--no-debug", default=False, envvar="LLS_DD_DEBUG")
-@click.option(
-    "-f", "--fixed_settings", default=None, help=".json file with fixed settings"
-)
+@click.option("-f", "--fixed_settings", default=None, help=".json file with fixed settings")
 @click.argument("exp_folder")
 @click.pass_context
 def cli(ctx, exp_folder, home, debug, fixed_settings):
@@ -46,27 +44,13 @@ def cli(ctx, exp_folder, home, debug, fixed_settings):
 
 
 @cli.command(short_help="Processes an experiment folder or individual stacks therein.")
+@click.option("-M", "--MIP", is_flag=True, default=False, help="calculate maximum intensity projections")
 @click.option(
-    "-M",
-    "--MIP",
-    is_flag=True,
-    default=False,
-    help="calculate maximum intensity projections",
+    "--rot", is_flag=True, default=False, help="rotate deskewed data to coverslip coordinates and save"
 )
+@click.option("--deskew", is_flag=True, default=False, help="save deskewed data")
 @click.option(
-    "--rot",
-    is_flag=True,
-    default=False,
-    help="rotate deskewed data to coverslip coordinates and save",
-)
-@click.option(
-    "--deskew", is_flag=True, default=False, help="save deskewed data"
-)
-@click.option(
-    "-b",
-    "--backend",
-    default="flowdec",
-    help='deconvolution backend, either "flowdec" or "gputools"',
+    "-b", "--backend", default="flowdec", help='deconvolution backend, either "flowdec" or "gputools"'
 )
 @click.option(
     "-i",
@@ -99,23 +83,15 @@ def cli(ctx, exp_folder, home, debug, fixed_settings):
     help="stack number to process. if not provided, all stacks are processed",
 )
 @click.option(
-    "--mstyle",
-    default="montage",
-    type=click.Choice(["montage", "multi"]),
-    help="MIP output style",
+    "--mstyle", default="montage", type=click.Choice(["montage", "multi"]), help="MIP output style"
 )
 @click.option(
     "--skip_existing",
     is_flag=True,
     default="False",
-    help="if this opting is given, files for which the output "
-    "already exists will not be processed",
+    help="if this opting is given, files for which the output " "already exists will not be processed",
 )
-@click.option(
-    "--lzw",
-    default=0,
-    help="lossless compression level for tiff (0-9). 0 is no compression",
-)
+@click.option("--lzw", default=0, help="lossless compression level for tiff (0-9). 0 is no compression")
 @click.argument("out_folder", required=False)
 @pass_process_cmd
 def process(
@@ -144,7 +120,7 @@ def process(
     ep.do_deconv_rotate = decon_rot
     ep.skip_existing = skip_existing
     ep.deconv_n_iter = iterations
-    #ep.lzw = lzw
+    # ep.lzw = lzw
     ep.MIP_method = mstyle
     ep.deconv_backend = backend
 

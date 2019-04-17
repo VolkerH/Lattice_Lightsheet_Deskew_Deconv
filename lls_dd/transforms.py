@@ -43,7 +43,7 @@ def shift_centre(matrix_shape: Collection[float], direction=-1.0) -> np.ndarray:
     np.ndarray
         4x4 affine translation matrix
     """
-    assert(len(matrix_shape)==3)
+    assert len(matrix_shape) == 3
     centre = np.array(matrix_shape) / 2
     shift = np.eye(4)
     shift[:3, 3] = direction * centre

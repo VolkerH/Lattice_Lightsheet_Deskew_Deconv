@@ -68,9 +68,7 @@ def extract_lls_metadata(settingsfilepath: str, verbose: bool = False) -> pd.Dat
         dfs[key] = pd.DataFrame(matchdict)
 
     # Merge multiple-row tables beased on channel
-    metadata = (
-        dfs["SPZT"].merge(dfs["ZPZT"], on="channel").merge(dfs["Laser"], on="channel")
-    )
+    metadata = dfs["SPZT"].merge(dfs["ZPZT"], on="channel").merge(dfs["Laser"], on="channel")
     # Add columns with single values
     metadata["angle"] = dfs["angle"].iloc[0][0]
     metadata["zmotion"] = dfs["Zmotion"].iloc[0][0]

@@ -15,9 +15,7 @@ os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
 
 def init_rl_deconvolver(**kwargs):
     """initializes the tensorflow-based Richardson Lucy Deconvolver """
-    return tfd_restoration.RichardsonLucyDeconvolver(
-        n_dims=3, start_mode="input", **kwargs 
-    ).initialize()
+    return tfd_restoration.RichardsonLucyDeconvolver(n_dims=3, start_mode="input", **kwargs).initialize()
 
 
 def deconv_volume(
@@ -50,18 +48,16 @@ def deconv_volume(
     np.ndarray
         deconvolved volume
     """
-    # TODO: test different gpu options and remove comments
-    #gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.85)
-    gpu_options = tf.GPUOptions(allow_growth = True)
+    # gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.85)
+    gpu_options = tf.GPUOptions(allow_growth=True)
     config = tf.ConfigProto(log_device_placement=False, gpu_options=gpu_options)
-    #config.gpu_options.allow_growth = True
-
     aq = fd_data.Acquisition(data=vol, kernel=psf)
     if observer is not None:
         warnings.warn("Observer function for iteration not yet implemented.")
     result = deconvolver.run(aq, niter=n_iter, session_config=config)
     logger.debug(f"flowdec info: {result.info}")
     return result.data
+
 
 def get_deconv_function(
     psf: np.ndarray, deconvolver: tfd_restoration.RichardsonLucyDeconvolver, n_iter: int
@@ -83,7 +79,5 @@ def get_deconv_function(
         deconvolution function that simply takes an input volume and returns
         a deconvolved volume
     """
-    deconv_func = partial(
-        deconv_volume, psf=psf, deconvolver=deconvolver, n_iter=n_iter
-    )
+    deconv_func = partial(deconv_volume, psf=psf, deconvolver=deconvolver, n_iter=n_iter)
     return deconv_func

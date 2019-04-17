@@ -8,9 +8,8 @@ from lls_dd.imsave import imsave
 
 logging.getLogger("tifffile").setLevel(logging.ERROR)
 
-def write_tiff_createfolder(
-    path: Union[str, pathlib.Path], nparray: np.ndarray, **opt_kwargs
-):
+
+def write_tiff_createfolder(path: Union[str, pathlib.Path], nparray: np.ndarray, **opt_kwargs):
     """ 
     given a
     path: to a tiff file of type pathlib.Path (or str), and
@@ -25,4 +24,4 @@ def write_tiff_createfolder(
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
         tifffile.imsave(str(path), nparray)
-        #imsave(str(path), nparray, **opt_kwargs) # 
+        # imsave(str(path), nparray, **opt_kwargs) #

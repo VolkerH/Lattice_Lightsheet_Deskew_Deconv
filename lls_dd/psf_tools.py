@@ -1,20 +1,19 @@
-from skimage.feature import peak_local_max
-from skimage.filters import gaussian
-from numpy.linalg import inv
 import warnings
+import logging
 import pathlib
 import tifffile
 import numpy as np
+from numpy.linalg import inv
+from skimage.feature import peak_local_max
+from skimage.filters import gaussian
 from typing import Tuple, Union, Optional, Iterable, Collection
-
 from lls_dd.transforms import scale_pixel_z, shift_centre, unshift_centre, deskew_mat
 from lls_dd.transform_helpers import calc_deskew_factor
 
 # TODO import gputools/scipy version based on some environment variable
-from scipy.ndimage import affine_transform
-# from .gputools_wrapper import affine_transform_gputools as affine_transform
+# from scipy.ndimage import affine_transform
+from lls_dd.gputools_wrapper import affine_transform_gputools as affine_transform
 
-import logging
 logger = logging.getLogger("lls_dd")
 
 
@@ -140,9 +139,7 @@ def psf_rescale_centre_skew_pad_twostep(
     """
     # Step 1: Scaling to same z step as image data to deconvole
     scale_psf = scale_pixel_z(dz_ratio_galvo_stage)
-    scaled_shape = np.array(psf.shape) * np.array(
-        (1.0 / dz_ratio_galvo_stage, 1.0, 1.0)
-    )
+    scaled_shape = np.array(psf.shape) * np.array((1.0 / dz_ratio_galvo_stage, 1.0, 1.0))
     scaled_shape = scaled_shape.astype(np.int)
     scaled = affine_transform(psf, inv(scale_psf), output_shape=scaled_shape)
 
@@ -185,9 +182,7 @@ def psf_normalize_intensity(psf: np.ndarray) -> np.ndarray:
         return psf
 
 
-def psf_find_support_size(
-    psf: np.ndarray, threshold_fraction: float = 0.03
-) -> np.array:
+def psf_find_support_size(psf: np.ndarray, threshold_fraction: float = 0.03) -> np.array:
     """returns the dimensions of the bounding volume where the PSF is above a fraction of the max intensity
     
     Parameters
@@ -262,12 +257,7 @@ def generate_psf(
     if subtract_bg:
         psf, bgval = psf_background_subtraction(psf)
     psf = psf_rescale_centre_skew_pad_twostep(
-        psf,
-        dz_ratio_galvo_stage,
-        bead_centre,
-        output_shape,
-        deskewfactor,
-        interpolation=1,
+        psf, dz_ratio_galvo_stage, bead_centre, output_shape, deskewfactor, interpolation=1
     )
     if normalize_intensity:
         psf = psf_normalize_intensity(psf)

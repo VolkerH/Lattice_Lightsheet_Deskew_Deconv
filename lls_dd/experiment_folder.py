@@ -19,11 +19,7 @@ class Experimentfolder(object):
         r".*[/\\](?P<prefix>.+)_ch(?P<channel>\d+)_[^\d]*(?P<stack_nr>\d+)_(?P<wavelength>\d+)nm_(?P<reltime_ms>\d+)msec_(?P<abstime_ms>\d+)msec*"
     )
 
-    def __init__(
-        self,
-        f: Union[str, pathlib.Path],
-        fixed_settings_file: str = "fixed_settings.json",
-    ):
+    def __init__(self, f: Union[str, pathlib.Path], fixed_settings_file: str = "fixed_settings.json"):
         if not isinstance(f, pathlib.Path):
             # try to convert into pathlib Path if something else has been passed in
             f = pathlib.Path(f)
@@ -37,7 +33,7 @@ class Experimentfolder(object):
         self.settings: Union[pd.DataFrame, None] = None
         self.psf_settings: Union[pd.DataFrame, None] = None
         self.fixed_settings_file: str = fixed_settings_file
-        self.defaultPSFs = None  # TODO
+        self.defaultPSFs = None  # TODO implement default PSFs
 
         self.scan_folder()
 
@@ -85,20 +81,20 @@ class Experimentfolder(object):
         """ finds and parses file names of PSFs
         """
         files = (self.folder / "PSF").rglob("*.tif")
-        
+
         # This complicated list comprehension
         # extracts some fields from the Path using
         # a regular expression
 
         # TODO: what happens if unexpected tiff files are present?
-        #matchdict = [
+        # matchdict = [
         #    {**self.regex_PSF.match(str(f)).groupdict(), **{"file": str(f)}} for f in files
-        #]
+        # ]
         matchdict = []
         for f in files:
-            match =  self.regex_PSF.match(str(f))
+            match = self.regex_PSF.match(str(f))
             if match:
-                matchdict.append({**match.groupdict(),  **{"file": str(f)}})
+                matchdict.append({**match.groupdict(), **{"file": str(f)}})
         df = pd.DataFrame(matchdict)
         df["name"] = df.file.apply(lambda x: pathlib.Path(x).name)
         return df
@@ -125,7 +121,9 @@ class Experimentfolder(object):
             for f in stackfiles:
                 match = self.regex_Stackfiles.match(str(f))
                 if match:
-                    matched_stacks += [{**match.groupdict(),**{"file": str(f), "stack_name": stackname}}]
+                    matched_stacks += [
+                        {**match.groupdict(), **{"file": str(f), "stack_name": stackname}}
+                    ]
         # TODO: (flagged for removal) matched_stacks = natsorted(matched_stacks)
         return pd.DataFrame(matched_stacks)
 

@@ -38,14 +38,10 @@ def affine_transform_gputools(
         )
 
     if prefilter is not None:
-        warnings.warn(
-            "Prefilter is not available in the gputools wrapper. Argument is ignored"
-        )
+        warnings.warn("Prefilter is not available in the gputools wrapper. Argument is ignored")
 
     if np.any(offset):
-        warnings.warn(
-            "Offset argument not implemented in gputools wrapper. Will be ignored."
-        )
+        warnings.warn("Offset argument not implemented in gputools wrapper. Will be ignored.")
 
     if order == 0:
         interpolation = "nearest"
@@ -75,11 +71,7 @@ def affine_transform_gputools(
             input_data = np.pad(input_data, padding, mode=mode)
 
     if mode not in ("edge", "constant", "wrap"):
-        warnings.warn(
-            "Mode "
-            + mode
-            + " not supported by gputools.constant. Falling back to constant"
-        )
+        warnings.warn("Mode " + mode + " not supported by gputools.constant. Falling back to constant")
         mode = "constant"
 
     if mode == "constant" and cval != 0.0:
@@ -89,16 +81,14 @@ def affine_transform_gputools(
 
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
-        result = affine(
-            data=input_data, mat=matrix, mode=mode, interpolation=interpolation
-        )
+        result = affine(data=input_data, mat=matrix, mode=mode, interpolation=interpolation)
 
     if needs_crop and output_shape is not None:
         i, j, k = output_shape
         result = result[0:i, 0:j, 0:k]
 
     return result
-    
+
 
 def gaussian_gputools(
     image,
@@ -112,6 +102,7 @@ def gaussian_gputools(
 ):
     """ 
     scipy.filters.gaussian compatible wrapper around gputools gaussian
+    NOT yet working !
     """
 
     if mode != "nearest" or cval != 0 or multichannel or preserve_range:
@@ -121,11 +112,7 @@ def gaussian_gputools(
         )
 
     if output:
-        warnings.warn(
-            f"passing an output variable in has not been tested with gputools wrapper"
-        )
+        warnings.warn(f"passing an output variable in has not been tested with gputools wrapper")
     # TODO: check what happens if a numpy array is passed into res_g (expects OCLArray)
-    return gaussian_filter(
-        data=image, sigma=sigma, truncate=truncate, normalize=True, res_g=output
-    )
+    return gaussian_filter(data=image, sigma=sigma, truncate=truncate, normalize=True, res_g=output)
 

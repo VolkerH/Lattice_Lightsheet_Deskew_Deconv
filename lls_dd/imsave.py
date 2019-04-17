@@ -48,15 +48,13 @@ THE SOFTWARE OR THE USE OR OTHER DEALINGS WITH THE SOFTWARE.
 """
 
 
-logger = logging.getLogger('lls_dd')
+logger = logging.getLogger("lls_dd")
 
 
 def reorderstack(arr: np.ndarray, inorder: str = "zyx", outorder: str = "tzcyx"):
     """rearrange order of array, used when resaving a file for Fiji."""
     inorder = inorder.lower()
-    assert arr.ndim == len(
-        inorder
-    ), "The array dimensions must match the inorder dimensions"
+    assert arr.ndim == len(inorder), "The array dimensions must match the inorder dimensions"
     for _ in range(len(outorder) - arr.ndim):
         arr = np.expand_dims(arr, 0)
     for i in outorder:
@@ -64,6 +62,7 @@ def reorderstack(arr: np.ndarray, inorder: str = "zyx", outorder: str = "tzcyx")
             inorder = i + inorder
     arr = np.transpose(arr, [inorder.find(n) for n in outorder])
     return arr
+
 
 # TODO: I copied this in from Talley's LLSPy with the intention of writing the scale,
 # however, I don't like the stack reordering introducing additional length 1 dimensions
@@ -91,7 +90,7 @@ def imsave(
         "loop": "true",
     }
 
-    big_t = True if arr.nbytes > 3758096384 else False  # > 3.5GB make a bigTiff
+    big_t = True if arr.nbytes > 3_758_096_384 else False  # > 3.5GB make a bigTiff
     if arr.ndim == 3:
         arr = reorderstack(arr)  # assume that 3 dimension array is ZYX
     with warnings.catch_warnings():

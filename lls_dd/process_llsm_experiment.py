@@ -426,9 +426,15 @@ class ExperimentProcessor(object):
                 print(f"Processing {index}: {row.file}")
             # TODO implement regex check for files to skip
             wavelength = row.wavelength
-            self.process_file(
-                pathlib.Path(row.file), deskew_func, rotate_func, deconv_functions[wavelength]
-            )
+            try:
+                self.process_file(
+                    pathlib.Path(row.file), deskew_func, rotate_func, deconv_functions[wavelength]
+                )
+            except MemoryError:
+                # see https://github.com/VolkerH/Lattice_Lightsheet_Deskew_Deconv/issues/36
+                # this should catch MemoryError exceptions from gputools/pyopencl but it cannot
+                # catch the core dump when the cuda allocator fails
+                warnings.warn("Memory Error occured. Stack might be too large for GPU mem. Skipping")
 
     def process_all(self):
         """Process all time series (stacks) in the Experimentfolder this ExperimentProcessor refers to

@@ -5,6 +5,7 @@ import tifffile
 import tqdm
 import numpy as np
 import os
+from sys import exc_info
 from typing import Iterable, Callable, Optional, Union, Any, Dict, DefaultDict
 from collections import defaultdict
 from lls_dd.experiment_folder import Experimentfolder
@@ -426,18 +427,21 @@ class ExperimentProcessor(object):
                 print(f"Processing {index}: {row.file}")
             # TODO implement regex check for files to skip
             wavelength = row.wavelength
-            try:
-                self.process_file(
-                    pathlib.Path(row.file), deskew_func, rotate_func, deconv_functions[wavelength]
-                )
-            except MemoryError:
+            self.process_file(
+                pathlib.Path(row.file), deskew_func, rotate_func, deconv_functions[wavelength]
+            )
+            except:
                 # see https://github.com/VolkerH/Lattice_Lightsheet_Deskew_Deconv/issues/36
-                # this should catch MemoryError exceptions from gputools/pyopencl but it cannot
+                # this should catch MemoryError exceptions from gputools/pyopencl 
+                # and some tensorflow errors but it cannot
                 # catch the core dump when the cuda allocator fails
-                warnings.warn("Memory Error occured. Stack might be too large for GPU mem. Skipping")
-
+                
     def process_all(self):
         """Process all time series (stacks) in the Experimentfolder this ExperimentProcessor refers to
         """
         for stack in tqdm.tqdm(self.ef.stacks):
-            self.process_stack_subfolder(stack)
+            try:
+                self.process_stack_subfolder(stack)
+            except:
+                warnings.warn(f"Caught exception {exc_info()[0]}. Stack might be too large for GPU mem or one of the input tif files might be corrupted. Skipping remainder of this folder.")
+                pass

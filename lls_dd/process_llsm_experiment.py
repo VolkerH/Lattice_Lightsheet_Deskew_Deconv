@@ -438,7 +438,7 @@ class ExperimentProcessor(object):
                 # this can probably not catch the core dump when the cuda allocator fails
                 warnings.warn(
                     f"Caught exception {exc_info()[0]} while processing {row.file}"\
-                    f"  Stack might be too large for GPU mem"\
+                    f"Stack might be too large for GPU memory "\
                     f"or one of the input tif files might be corrupted.")
                 raise RuntimeError
 

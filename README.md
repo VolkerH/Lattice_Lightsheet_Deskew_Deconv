@@ -15,7 +15,7 @@ The repository encompasses:
 ### Prerequisites
 
 * `lls_dd` installed (see **Installation** section below)
-* it is assumed that your experiments are organized and named according to the [folder strucutre outlined in `folder_structure.md`](./folder_structure.md).
+* it is assumed that your experiments are organized and named according to the [folder structure outlined in `folder_structure.md`](./folder_structure.md).
 * `lls_dd` expects a configuration file that contains some fixed settings. The default location for this configuration file is `$HOME/.lls_dd/fixed_settings.json`. When `lls_dd` does not find this file it will try and create it. Make sure you edit the file to reflect the configuration of your microscope (mainly the light sheet angle and the magnification).
 
 ### Command-line options help

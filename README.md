@@ -16,7 +16,7 @@ The repository encompasses:
 
 ### Sample session
 
-[![asciicast](https://asciinema.org/a/k850NgHYDiM2onyJye8r5vTTu.svg)](https://asciinema.org/a/k850NgHYDiM2onyJye8r5vTTu)
+[![asciicast](https://asciinema.org/a/k850NgHYDiM2onyJye8r5vTTu.svg)](https://asciinema.org/a/k850NgHYDiM2onyJye8r5vTTu?speed=2)
 
 ### Prerequisites
 
@@ -181,4 +181,4 @@ Currently `lls_dd` is mainly leveraging on two libraries that handle the heavy l
 This library was written by Volker Hilsenstein at Monash Micro Imaging.
 
 The code in this repository is distributed under a BSD-3 license, with the exceptions of parts from other projects (which will
-have their respective licenses reproduced in the source files.)
+have their respective licenses reproduced in the source filegits.)

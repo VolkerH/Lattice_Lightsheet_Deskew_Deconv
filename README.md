@@ -16,7 +16,7 @@ The repository encompasses:
 
 ### Sample session
 
-<script id="asciicast-k850NgHYDiM2onyJye8r5vTTu" src="https://asciinema.org/a/k850NgHYDiM2onyJye8r5vTTu.js" async></script>
+[![asciicast](https://asciinema.org/a/k850NgHYDiM2onyJye8r5vTTu.svg)](https://asciinema.org/a/k850NgHYDiM2onyJye8r5vTTu)
 
 ### Prerequisites
 
@@ -119,9 +119,23 @@ where `{environment_{...}_.yml}` stands for one of the two provided environment 
 
 Activate the new environment with `conda activate llsdd`.
 
-Download and unzip or `git clone` this repository.
+Download and unzip or `git clone` the latest version of flowdec to install it from the source repo (at the time of this writing the version on pypi doesn't have the '2357' padding mode).
 
-Change to the top-level of the cloned or unzipped repository and type `pip install .`. If this completes successfully you should now be able to use the `lls_dd` command line utility.
+```
+git clone https://github.com/hammerlab/flowdec.git
+cd flowdec/python
+python setup.py install
+```
+
+Download and unzip or `git clone` this repository and install it:
+
+```
+git clone https://github.com/VolkerH/Lattice_Lightsheet_Deskew_Deconv.git
+cd Lattice_Lightsheet_Deskew_Deconv
+python setup.py install
+```
+
+You should now be able to use the `lls_dd` command line utility.
 
 If the installation fails for `pyopencl`, see 
 the paragraph on `pyopencl` in section Troubleshooting.

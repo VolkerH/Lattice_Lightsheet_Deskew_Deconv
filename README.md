@@ -2,6 +2,8 @@
 
 ## `l`attice `l`ight`s`heet `d`eskew and `d`econvolution with GPU-accelerated Python
 
+![illustration](./readme_illustration.png)
+
 ## About
 
 This project provides GPU-accelerated python code for post-processing (deconvolution, deskew, rotate to coverslip, MIP projections) of image stacks acquired on a lattice light sheet microscope. If no supported GPU is present, all functions can also be run on a CPU.

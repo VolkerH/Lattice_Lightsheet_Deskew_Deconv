@@ -103,7 +103,7 @@ The following notebooks illustrate the basic algorithms used and provide example
 
 ## Installation
 
-### Option 1: `conda` + `pip` 
+### Installation using `conda` + `pip`
 
 Install anaconda or miniconda.
 
@@ -139,11 +139,6 @@ You should now be able to use the `lls_dd` command line utility.
 
 If the installation fails for `pyopencl`, see 
 the paragraph on `pyopencl` in section Troubleshooting.
-
-### Option 2: Docker container
-
-TODO (the Docker container has not been built yet):
-If you have `nvidia-docker` you can run `lls_dd` in a pre-built Docker container. 
 
 ## Troubleshooting
 

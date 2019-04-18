@@ -2,7 +2,7 @@
 
 ## `l`attice `l`ight`s`heet `d`eskew and `d`econvolution with GPU-accelerated Python
 
-<img src="./readme_illustration.png" width=350>
+<img src="./readme_illustration.png" width=450>
 
 ## About
 
@@ -18,7 +18,7 @@ The repository encompasses:
 
 ### Sample session
 
-<a href="https://asciinema.org/a/k850NgHYDiM2onyJye8r5vTTu" target="_blank"><img src="https://asciinema.org/a/k850NgHYDiM2onyJye8r5vTTu.svg" width=350 /></a>
+<a href="https://asciinema.org/a/k850NgHYDiM2onyJye8r5vTTu" target="_blank"><img src="https://asciinema.org/a/k850NgHYDiM2onyJye8r5vTTu.svg" width=400 /></a>
 
 ### Prerequisites
 

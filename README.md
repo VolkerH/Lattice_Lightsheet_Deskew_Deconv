@@ -14,6 +14,10 @@ The repository encompasses:
 
 ## `lls_dd` command line tool usage
 
+### Sample session
+
+<script id="asciicast-k850NgHYDiM2onyJye8r5vTTu" src="https://asciinema.org/a/k850NgHYDiM2onyJye8r5vTTu.js" async></script>
+
 ### Prerequisites
 
 * `lls_dd` installed (see **Installation** section below)

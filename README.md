@@ -161,6 +161,11 @@ Getting `pyopencl` (one of the required python dependencies) to work can be tric
 
 ## Roadmap
 
+* simplify installation
+* Performance improvements (the deconv/deskew code by itself is much faster than the iteration time per image, need to pre-fetch images and write images in the background to keep the GPU busy).
+* Save processing metadata with images.
+* Deconvolve images that are too large for GPU memory in chunks (see [here](https://github.com/hammerlab/flowdec/blob/master/python/examples/notebooks/Tile-by-tile%20deconvolution%20using%20dask.ipynb))
+
 ## Project History
 
 This project was started in late 2018 with the intention to create an open-source solution because the existing GPU-accelarated implementation at the time was only available in binary form after signing a research license agreement with Janelia. Meanwhile, the Janelia code has been [open-sourced and put on Github](https://github.com/dmilkie/cudaDecon).

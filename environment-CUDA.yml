@@ -1,0 +1,23 @@
+name: llsdd
+channels:
+  - conda-forge
+  - talley
+  - defaults
+dependencies:
+  - python=3.6
+  - pip
+  - tensorflow-gpu
+  - numpy=1.15.*
+  - pandas=0.23.*
+  - scikit-image=0.14.*
+  - gputools
+  - click
+  - tqdm
+  - tifffile
+  - pip:
+    - flowdec==1.0.7  
+    - natsort==6.0.0
+
+    
+ 
+

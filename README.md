@@ -178,6 +178,7 @@ Currently `lls_dd` is mainly leveraging on two libraries that handle the heavy l
 * [`flowdec`](https://github.com/hammerlab/flowdec) by Eric Czech . This is the default library used for deconvolution, based on tensorflow.
 * [`gputools`](https://github.com/maweigert/gputools) by Martin Weigert  for affine transformations and optionally also for OpenCL-based deconvolution (experimental).
 
+Sample image used on this page courtesy of Felix Kraus and David Potter (Monash University).  
 ## License
 
 This library was written by Volker Hilsenstein at Monash Micro Imaging.

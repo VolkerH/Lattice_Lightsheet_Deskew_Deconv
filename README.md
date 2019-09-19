@@ -18,7 +18,7 @@ The repository encompasses:
 
 ### Sample session
 
-<a href="https://asciinema.org/a/k850NgHYDiM2onyJye8r5vTTu" target="_blank"><img src="https://asciinema.org/a/k850NgHYDiM2onyJye8r5vTTu.svg" width=400 /></a>
+<a href="https://asciinema.org/a/k850NgHYDiM2onyJye8r5vTTu?speed=4" target="_blank"><img src="https://asciinema.org/a/k850NgHYDiM2onyJye8r5vTTu.svg" width=400 /></a>
 
 ### Prerequisites
 

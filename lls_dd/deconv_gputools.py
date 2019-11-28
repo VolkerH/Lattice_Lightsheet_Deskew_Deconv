@@ -76,11 +76,11 @@ class Deconvolver_RL_gputools(object):
             # logger.info("Iteration: {}".format(i))
             fft_convolve(u_g, self.psf_g, plan=self.plan, res_g=self.tmp_g, kernel_is_fft=True)
 
-        _complex_divide_inplace(y_g, self.tmp_g)
+            _complex_divide_inplace(y_g, self.tmp_g)
 
-        fft_convolve(self.tmp_g, self.psfflip_f_g, plan=self.plan, inplace=True, kernel_is_fft=True)
+            fft_convolve(self.tmp_g, self.psfflip_f_g, plan=self.plan, inplace=True, kernel_is_fft=True)
 
-        _complex_multiply_inplace(u_g, self.tmp_g)
+            _complex_multiply_inplace(u_g, self.tmp_g)
 
         # can abs be calculated on the gpu ?
         return np.abs(u_g.get())
@@ -96,30 +96,6 @@ def init_rl_deconvolver(**kwargs):
     """
     return None
 
-
-def deconv_volume(
-    vol: np.ndarray,
-    psf: np.ndarray,
-    deconvolver: object,
-    n_iter: int,
-    observer: Optional[Callable] = None,
-) -> np.ndarray:
-    """ perform RL deconvolution using deconvolver 
-    input:
-    vol : input volume
-    psf : psf (numpy array) 
-    deconvolver : see init_rl_deconvolver
-    n_iter: number of iterations
-
-    TODO: for gputools
-    """
-
-    if deconvolver:
-        warnings.warn("deconvolver not required for gputools deconv. None expected")
-    if observer:
-        warnings.warn("observer not implemented for gputools deconv")
-
-    return gputools.deconv.deconv_rl(vol, psf, Niter=n_iter)
 
 
 def get_deconv_function(psf: np.ndarray, deconvolver: object, n_iter: int) -> Callable:

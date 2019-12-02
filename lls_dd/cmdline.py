@@ -72,9 +72,8 @@ def cli(ctx, exp_folder, home, debug, fixed_settings):
     "--decon-deskew",
     is_flag=True,
     default=False,
-    help="if  deconvolution was chosen, rotate deconvolved "
-    "and deskewed data to coverslip coordinates"
-    " and save.",
+    help="if  deconvolution was chosen, deskew the deconvolved "
+    " data and save.",
 )
 @click.option(
     "-n",

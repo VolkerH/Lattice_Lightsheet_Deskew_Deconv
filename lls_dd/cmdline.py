@@ -59,6 +59,12 @@ def cli(ctx, exp_folder, home, debug, fixed_settings):
     help="if >0, perform deconvolution this number of Richardson-Lucy " "iterations",
 )
 @click.option(
+    "-c",
+    "--camera-subtract",
+    default = 100,
+    help="value to be substracted from greyvalues (camera offset)",
+)
+@click.option(
     "-r",
     "--decon-rot",
     is_flag=True,
@@ -101,6 +107,7 @@ def process(
     deskew,
     backend,
     iterations,
+    camera_subtract,
     number,
     decon_rot,
     decon_deskew,
@@ -122,7 +129,7 @@ def process(
     # ep.lzw = lzw
     ep.MIP_method = mstyle
     ep.deconv_backend = backend
-
+    ep.bg_subtract_value = camera_subtract,
     print(processcmd.ef)
     print(ep)
 

@@ -273,7 +273,7 @@ class ExperimentProcessor(object):
         vol_raw = (
             vol_raw.astype(np.float32) - self.bg_subtract_value
         )  # TODO see issue https://github.com/VolkerH/Lattice_Lightsheet_Deskew_Deconv/issues/13
-        # vol_raw = np.clip(vol_raw, a_min=0, a_max=None).astype(np.uint16)  # in-place clipping of negative values
+        vol_raw = np.clip(vol_raw, a_min=0, a_max=None) #.astype(np.uint16)  # in-place clipping of negative values
 
         # The following case handling is ugly
         # (and got even uglier due to type checking (assert statements)

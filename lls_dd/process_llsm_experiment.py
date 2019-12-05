@@ -395,7 +395,7 @@ class ExperimentProcessor(object):
                     & (self.ef.psf_settings["lambda"] == int(wavelength))
                 ]
                 tmp.reset_index()
-                dz_galvo = tmp.galvoscan_intervali.iloc[0]
+                dz_galvo = tmp.galvoscan_interval.iloc[0]
                 if self.verbose:
                     print("dz galvo interval", dz_galvo)
                     print(f"processing PSF file {psffile} for wavelength {wavelength}")

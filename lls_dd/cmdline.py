@@ -50,7 +50,7 @@ def cli(ctx, exp_folder, home, debug, fixed_settings):
 )
 @click.option("--deskew", is_flag=True, default=False, help="save deskewed data")
 @click.option(
-    "-b", "--backend", default="flowdec", help='deconvolution backend, either "flowdec" or "gputools"'
+    "-b", "--backend", default="flowdec", help='deconvolution backend, either "flowdec","gputools" or "pycudadecon"'
 )
 @click.option(
     "-i",

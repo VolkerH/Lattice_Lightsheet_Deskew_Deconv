@@ -84,7 +84,7 @@ class ExperimentProcessor(object):
 
         # deconvolution and deconvolution output options
         self.do_deconv: bool = False  # set to True if performing deconvolution on skewed raw volume
-        self.deconv_backend: str = "flowdec"  # can be "flowdec" or "gputools"
+        self.deconv_backend: str = "flowdec"  # can be "flowdec","gputools" or "pycudadecon"
         self.do_deconv_deskew: bool = False  # if you want the deconv deskewed
         self.do_deconv_rotate: bool = True  # if you want the deconv rotated
         self.do_deconv = self.do_deconv or self.do_deconv_deskew or self.do_deconv_rotate
@@ -365,6 +365,8 @@ class ExperimentProcessor(object):
                 from lls_dd.deconv_gputools import init_rl_deconvolver, get_deconv_function
             elif self.deconv_backend == "flowdec":
                 from lls_dd.deconvolution import init_rl_deconvolver, get_deconv_function
+            elif self.deconv_backend == "pycudadecon":
+                from lls_dd.deconv_pycudadecon import init_rl_deconvolver, get_deconv_function
             else:
                 warnings.warn(f"unknown deconvolution backend {self.deconv_backend}")
                 exit(-1)

@@ -319,7 +319,6 @@ class ExperimentProcessor(object):
                         deconv_rotated.astype(self.output_dtype), outfiles["deconv/rotate/MIP"]
                     )
             if not self.do_deconv_deskew and not self.do_deconv_rotate and not checks[4]:
-                print("writing plain deconvolved file")
                 write_func(outfiles["deconv/plain"], deconv_raw.astype(self.output_dtype))
 
 

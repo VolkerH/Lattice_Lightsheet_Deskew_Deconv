@@ -160,6 +160,7 @@ class ExperimentProcessor(object):
         )  # TODO: implement plain deconvolution on raw or remove
         outfiles["deconv/deskew"] = out_base / "py_deconv" / "deskew" / f"{stem}_deconv_deskew{suffix}"
         outfiles["deconv/rotate"] = out_base / "py_deconv" / "rotate" / f"{stem}_deconv_rotate{suffix}"
+        outfiles["deconv/plain"] = out_base / "py_deconv" / "plain" / f"{stem}_deconv{suffix}"
         # Maximum intensity projections ...
         outfiles["deskew/MIP"] = out_base / "py_deskew" / "MIP" / f"{stem}_deskew_MIP{suffix}"
         outfiles["rotate/MIP"] = out_base / "py_rotate" / "MIP" / f"{stem}_rotate_MIP{suffix}"
@@ -252,13 +253,15 @@ class ExperimentProcessor(object):
 
         outfiles = self.generate_outputnames(infile)
         # Check wether anything needs to be processed? Return otherwise.
-        checks = [False, False, False, False]
+        checks = [False, False, False, False, False]
         if self.skip_existing:
             checks = []
             checks.append(self.do_deskew and outfiles["deskew"].exists())
             checks.append(self.do_rotate and outfiles["rotate"].exists())
             checks.append(self.do_deconv_deskew and outfiles["deconv/deskew"].exists())
             checks.append(self.do_deconv_rotate and outfiles["deconv/rotate"].exists())
+            checks.append(not self.do_deconv_rotate and not self.do_deconv_deskew and outfiles["deconv/plain"].exists())
+
         if all(checks):
             if self.verbose:
                 warnings.warn(
@@ -315,6 +318,9 @@ class ExperimentProcessor(object):
                     self.create_MIP(
                         deconv_rotated.astype(self.output_dtype), outfiles["deconv/rotate/MIP"]
                     )
+            if not self.do_deconv_deskew and not self.do_deconv_rotate and not checks[4]:
+                write_func(outfiles["deconv/plain"], deconv_raw.astype(self.output_dtype))
+
 
     def process_stack_subfolder(self, stack_name: str, write_func: Callable = write_tiff_createfolder):
         """Process all files in a "Stack" folder of an Experiment folder

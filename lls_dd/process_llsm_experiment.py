@@ -253,7 +253,7 @@ class ExperimentProcessor(object):
 
         outfiles = self.generate_outputnames(infile)
         # Check wether anything needs to be processed? Return otherwise.
-        checks = [False, False, False, False]
+        checks = [False, False, False, False, False]
         if self.skip_existing:
             checks = []
             checks.append(self.do_deskew and outfiles["deskew"].exists())

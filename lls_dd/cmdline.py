@@ -126,7 +126,7 @@ def process(
     ep.do_deconv_rotate = decon_rot
     ep.skip_existing = skip_existing
     ep.deconv_n_iter = iterations
-    # ep.lzw = lzw
+    ep.output_tiff_compress = lzw
     ep.MIP_method = mstyle
     ep.deconv_backend = backend
     ep.bg_subtract_value = camera_subtract,

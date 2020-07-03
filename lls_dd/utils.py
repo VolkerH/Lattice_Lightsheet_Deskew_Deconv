@@ -23,5 +23,5 @@ def write_tiff_createfolder(path: Union[str, pathlib.Path], nparray: np.ndarray,
     path.parent.mkdir(parents=True, exist_ok=True)
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
-        tifffile.imsave(str(path), nparray)
-        # imsave(str(path), nparray, **opt_kwargs) #
+        tifffile.imwrite(str(path), nparray, **opt_kwargs)
+        #imsave(str(path), nparray, **opt_kwargs) #

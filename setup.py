@@ -1,7 +1,7 @@
 from setuptools import setup
 
 setup(name='lls_dd',
-      version='2019.3.a1',
+      version='2020.7.a1',
       description='lattice lightsheet deskewing and deconvolution',
       url='https://github.com/VolkerH/Lattice_Lightsheet_Deskew_Deconv',
       author='Volker Hilsenstein',

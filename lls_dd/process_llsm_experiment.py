@@ -17,7 +17,7 @@ from lls_dd.transform_helpers import (
     get_projection_montage,
 )
 from lls_dd.utils import write_tiff_createfolder
-
+from functools import partial
 
 # from scipy.ndimage.filters import gaussian_filter
 # note: deconvolution functions will be imported according to chosen backend later
@@ -81,7 +81,7 @@ class ExperimentProcessor(object):
         self.output_bdv: bool = False  # TODO:implement Big Data Viewer output
         self.output_dtype = np.float32  # set the output dtype (no check for overflow)
         self.output_tiff_compress: Union[int, str] = 0  # compression level 0-9 or string (see tifffile)
-
+        
         # deconvolution and deconvolution output options
         self.do_deconv: bool = False  # set to True if performing deconvolution on skewed raw volume
         self.deconv_backend: str = "flowdec"  # can be "flowdec" or "gputools"
@@ -110,6 +110,7 @@ class ExperimentProcessor(object):
             ["Perform deskew after deconvolution", self.do_deconv_deskew],
             ["Rotate to coverslip after deconvolution", self.do_deconv_rotate],
             ["Background subtraction value for camera", self.bg_subtract_value],
+            ["Output compression level", self.output_tiff_compress],
         ]  # TODO: add missing
 
     def __repr__(self):
@@ -212,6 +213,8 @@ class ExperimentProcessor(object):
         """
         assert self.MIP_method in ["montage", "multi"]
 
+        if self.output_tiff_compress:
+            write_func = partial(write_func, compress=self.output_tiff_compress)
         try:
             if self.MIP_method == "montage":  # montages all three MIPs into a single 2D image
                 montage = get_projection_montage(vol, gap=self._montage_gap)
@@ -250,7 +253,7 @@ class ExperimentProcessor(object):
         write_func : Callable, optional
             function that handles writing of the images        
         """
-
+        
         outfiles = self.generate_outputnames(infile)
         # Check wether anything needs to be processed? Return otherwise.
         checks = [False, False, False, False, False]
@@ -278,6 +281,8 @@ class ExperimentProcessor(object):
         )  # TODO see issue https://github.com/VolkerH/Lattice_Lightsheet_Deskew_Deconv/issues/13
         vol_raw = np.clip(vol_raw, a_min=0, a_max=None) #.astype(np.uint16)  # in-place clipping of negative values
 
+        if self.output_tiff_compress:
+            write_func = partial(write_func, compress=self.output_tiff_compress)
         # The following case handling is ugly
         # (and got even uglier due to type checking (assert statements)
         # and due to use of multi-step affine transform which requires us

@@ -121,14 +121,6 @@ where `{environment_{...}_.yml}` stands for one of the two provided environment 
 
 Activate the new environment with `conda activate llsdd`.
 
-Download and unzip or `git clone` the latest version of flowdec to install it from the source repo (at the time of this writing the version on pypi doesn't have the '2357' padding mode).
-
-```
-git clone https://github.com/hammerlab/flowdec.git
-cd flowdec/python
-python setup.py install
-```
-
 Download and unzip or `git clone` this repository and install it:
 
 ```

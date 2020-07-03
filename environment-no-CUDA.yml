@@ -15,7 +15,7 @@ dependencies:
   - tqdm
   - tifffile
   - pip:
-    - flowdec==1.0.7  
+    - flowdec==1.1.0
     - natsort==6.0.0
 
     

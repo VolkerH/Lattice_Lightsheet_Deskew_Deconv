@@ -1,7 +1,7 @@
 from flowdec import restoration as tfd_restoration
 from flowdec import data as fd_data
 from functools import partial
-import tensorflow as tf
+from tensorflow.compat.v1 import ConfigProto, GPUOptions
 import numpy as np
 import warnings
 from typing import Optional, Callable
@@ -49,8 +49,8 @@ def deconv_volume(
         deconvolved volume
     """
     # gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.85)
-    gpu_options = tf.GPUOptions(allow_growth=True)
-    config = tf.ConfigProto(log_device_placement=False, gpu_options=gpu_options)
+    gpu_options = GPUOptions(allow_growth=True)
+    config = ConfigProto(log_device_placement=False, gpu_options=gpu_options)
     aq = fd_data.Acquisition(data=vol, kernel=psf)
     if observer is not None:
         warnings.warn("Observer function for iteration not yet implemented.")

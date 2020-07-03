@@ -242,9 +242,16 @@ def generate_psf(
         psffile = str(psffile)
     logger.debug(f"Processing PSF: {psffile}")
     psf = tifffile.imread(psffile)
+    logger.debug(f"output shape {output_shape}, psf shape {psf.shape}")
 
+    # crop psf if it exceeds output shape 
+    # this sometimes happens when more z-slices were taken
+    if np.any(np.array(output_shape) < np.array(psf.shape)):
+        limits = np.min([np.array((output_shape)), np.array((psf.shape))], axis=0)
+        psf = psf[0:limits[0], 0:limits[1], 0:limits[2]]
     # assert output shape >= input shape, otherwise we'd have to crop
-    assert np.all(np.array(output_shape) >= np.array(psf.shape))
+    assert np.all(np.array(output_shape) >= np.array(psf.shape)), "PSF shape is larger than array shape in at least one dimension"
+
 
     bead_centre = psf_find_maximum(psf)
     dz_ratio_galvo_stage = dz_galvo / dz_stage
